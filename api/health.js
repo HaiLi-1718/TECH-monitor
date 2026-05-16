@@ -1,0 +1,408 @@
+import { jsonResponse } from './_json-response.js';
+
+export const config = { runtime: 'edge' };
+
+const BOOTSTRAP_KEYS = {
+  earthquakes:       'seismology:earthquakes:v1',
+  outages:           'infra:outages:v1',
+  sectors:           'market:sectors:v1',
+  etfFlows:          'market:etf-flows:v1',
+  climateAnomalies:  'climate:anomalies:v1',
+  wildfires:         'wildfire:fires:v1',
+  marketQuotes:      'market:stocks-bootstrap:v1',
+  commodityQuotes:   'market:commodities-bootstrap:v1',
+  cyberThreats:      'cyber:threats-bootstrap:v2',
+  techReadiness:     'economic:worldbank-techreadiness:v1',
+  progressData:      'economic:worldbank-progress:v1',
+  renewableEnergy:   'economic:worldbank-renewable:v1',
+  positiveGeoEvents: 'positive_events:geo-bootstrap:v1',
+  riskScores:        'risk:scores:sebuf:stale:v1',
+  naturalEvents:     'natural:events:v1',
+  flightDelays:      'aviation:delays-bootstrap:v1',
+  insights:          'news:insights:v1',
+  predictions:       'prediction:markets-bootstrap:v1',
+  cryptoQuotes:      'market:crypto:v1',
+  gulfQuotes:        'market:gulf-quotes:v1',
+  stablecoinMarkets: 'market:stablecoins:v1',
+  unrestEvents:      'unrest:events:v1',
+  iranEvents:        'conflict:iran-events:v1',
+  ucdpEvents:        'conflict:ucdp-events:v1',
+  weatherAlerts:     'weather:alerts:v1',
+  spending:          'economic:spending:v1',
+  techEvents:        'research:tech-events-bootstrap:v1',
+  gdeltIntel:        'intelligence:gdelt-intel:v1',
+  correlationCards:   'correlation:cards-bootstrap:v1',
+  forecasts:         'forecast:predictions:v2',
+  securityAdvisories: 'intelligence:advisories-bootstrap:v1',
+  customsRevenue:    'trade:customs-revenue:v1',
+};
+
+const STANDALONE_KEYS = {
+  serviceStatuses:       'infra:service-statuses:v1',
+  macroSignals:          'economic:macro-signals:v1',
+  bisPolicy:             'economic:bis:policy:v1',
+  bisExchange:           'economic:bis:eer:v1',
+  bisCredit:             'economic:bis:credit:v1',
+  shippingRates:         'supply_chain:shipping:v2',
+  chokepoints:           'supply_chain:chokepoints:v4',
+  minerals:              'supply_chain:minerals:v2',
+  giving:                'giving:summary:v1',
+  gpsjam:                'intelligence:gpsjam:v2',
+  theaterPosture:        'theater_posture:sebuf:stale:v1',
+  theaterPostureLive:    'theater-posture:sebuf:v1',
+  theaterPostureBackup:  'theater-posture:sebuf:backup:v1',
+  riskScoresLive:        'risk:scores:sebuf:v1',
+  usniFleet:             'usni-fleet:sebuf:v1',
+  usniFleetStale:        'usni-fleet:sebuf:stale:v1',
+  faaDelays:             'aviation:delays:faa:v1',
+  intlDelays:            'aviation:delays:intl:v3',
+  notamClosures:         'aviation:notam:closures:v2',
+  positiveEventsLive:    'positive-events:geo:v1',
+  cableHealth:           'cable-health-v1',
+  cyberThreatsRpc:       'cyber:threats:v2',
+  militaryBases:         'military:bases:active',
+  militaryFlights:       'military:flights:v1',
+  militaryFlightsStale:  'military:flights:stale:v1',
+  temporalAnomalies:     'temporal:anomalies:v1',
+  displacement:          `displacement:summary:v1:${new Date().getFullYear()}`,
+  satellites:            'intelligence:satellites:tle:v1',
+  portwatch:             'supply_chain:portwatch:v1',
+  corridorrisk:          'supply_chain:corridorrisk:v1',
+  chokepointTransits:    'supply_chain:chokepoint_transits:v1',
+  transitSummaries:      'supply_chain:transit-summaries:v1',
+};
+
+const SEED_META = {
+  earthquakes:      { key: 'seed-meta:seismology:earthquakes',  maxStaleMin: 30 },
+  wildfires:        { key: 'seed-meta:wildfire:fires',          maxStaleMin: 120 },
+  outages:          { key: 'seed-meta:infra:outages',           maxStaleMin: 30 },
+  climateAnomalies: { key: 'seed-meta:climate:anomalies',       maxStaleMin: 120 },
+  unrestEvents:     { key: 'seed-meta:unrest:events',           maxStaleMin: 45 },
+  cyberThreats:     { key: 'seed-meta:cyber:threats',           maxStaleMin: 480 },
+  cryptoQuotes:     { key: 'seed-meta:market:crypto',           maxStaleMin: 30 },
+  etfFlows:         { key: 'seed-meta:market:etf-flows',        maxStaleMin: 60 },
+  gulfQuotes:       { key: 'seed-meta:market:gulf-quotes',      maxStaleMin: 30 },
+  stablecoinMarkets:{ key: 'seed-meta:market:stablecoins',      maxStaleMin: 60 },
+  naturalEvents:    { key: 'seed-meta:natural:events',          maxStaleMin: 120 },
+  flightDelays:     { key: 'seed-meta:aviation:faa',            maxStaleMin: 60 },
+  notamClosures:    { key: 'seed-meta:aviation:notam',          maxStaleMin: 90 },
+  predictions:      { key: 'seed-meta:prediction:markets',      maxStaleMin: 30 },
+  insights:         { key: 'seed-meta:news:insights',           maxStaleMin: 30 },
+  marketQuotes:     { key: 'seed-meta:market:stocks',         maxStaleMin: 30 },
+  commodityQuotes:  { key: 'seed-meta:market:commodities',    maxStaleMin: 30 },
+  // RPC-populated keys — auto-tracked by cachedFetchJson seed-meta writes
+  // serviceStatuses: removed — RPC-populated, no seed-meta after PR #1649
+  macroSignals:     { key: 'seed-meta:economic:macro-signals',    maxStaleMin: 60 },
+  bisPolicy:        { key: 'seed-meta:economic:bis:policy',       maxStaleMin: 2880 },
+  bisExchange:      { key: 'seed-meta:economic:bis:eer',          maxStaleMin: 2880 },
+  bisCredit:        { key: 'seed-meta:economic:bis:credit',       maxStaleMin: 2880 },
+  shippingRates:    { key: 'seed-meta:supply_chain:shipping',     maxStaleMin: 420 },
+  chokepoints:      { key: 'seed-meta:supply_chain:chokepoints',  maxStaleMin: 60 },
+  minerals:         { key: 'seed-meta:supply_chain:minerals',     maxStaleMin: 10080 },
+  giving:           { key: 'seed-meta:giving:summary',            maxStaleMin: 10080 },
+  gpsjam:           { key: 'seed-meta:intelligence:gpsjam',       maxStaleMin: 720 },
+  // cableHealth: removed — RPC-populated, no seed-meta after PR #1649
+  positiveGeoEvents:{ key: 'seed-meta:positive-events:geo',       maxStaleMin: 60 },
+  // riskScores: removed — RPC-populated, no seed-meta after PR #1649
+  iranEvents:       { key: 'seed-meta:conflict:iran-events',      maxStaleMin: 10080 },
+  ucdpEvents:       { key: 'seed-meta:conflict:ucdp-events',      maxStaleMin: 420 },
+  militaryFlights:  { key: 'seed-meta:military:flights',           maxStaleMin: 15 },
+  militaryForecastInputs: { key: 'seed-meta:military-forecast-inputs', maxStaleMin: 15 },
+  satellites:       { key: 'seed-meta:intelligence:satellites',    maxStaleMin: 180 },
+  weatherAlerts:    { key: 'seed-meta:weather:alerts',             maxStaleMin: 30 },
+  spending:         { key: 'seed-meta:economic:spending',          maxStaleMin: 120 },
+  techEvents:       { key: 'seed-meta:research:tech-events',       maxStaleMin: 420 },
+  gdeltIntel:       { key: 'seed-meta:intelligence:gdelt-intel',   maxStaleMin: 120 },
+  forecasts:        { key: 'seed-meta:forecast:predictions',       maxStaleMin: 90 },
+  sectors:          { key: 'seed-meta:market:sectors',             maxStaleMin: 30 },
+  techReadiness:    { key: 'seed-meta:economic:worldbank-techreadiness:v1', maxStaleMin: 10080 },
+  progressData:     { key: 'seed-meta:economic:worldbank-progress:v1',     maxStaleMin: 10080 },
+  renewableEnergy:  { key: 'seed-meta:economic:worldbank-renewable:v1',    maxStaleMin: 10080 },
+  intlDelays:       { key: 'seed-meta:aviation:intl',           maxStaleMin: 90 },
+  faaDelays:        { key: 'seed-meta:aviation:faa',            maxStaleMin: 60 },
+  theaterPosture:   { key: 'seed-meta:theater-posture',         maxStaleMin: 60 },
+  correlationCards: { key: 'seed-meta:correlation:cards',       maxStaleMin: 15 },
+  portwatch:           { key: 'seed-meta:supply_chain:portwatch',            maxStaleMin: 720 },
+  corridorrisk:        { key: 'seed-meta:supply_chain:corridorrisk',         maxStaleMin: 120 },
+  chokepointTransits:  { key: 'seed-meta:supply_chain:chokepoint_transits',  maxStaleMin: 15 },
+  transitSummaries:    { key: 'seed-meta:supply_chain:transit-summaries',    maxStaleMin: 15 },
+  usniFleet:           { key: 'seed-meta:military:usni-fleet',               maxStaleMin: 420 },
+  securityAdvisories:  { key: 'seed-meta:intelligence:advisories',           maxStaleMin: 90 },
+  customsRevenue:      { key: 'seed-meta:trade:customs-revenue',              maxStaleMin: 1440 },
+};
+
+// Standalone keys that are populated on-demand by RPC handlers (not seeds).
+// Empty = WARN not CRIT since they only exist after first request.
+const ON_DEMAND_KEYS = new Set([
+  'riskScoresLive',
+  'usniFleetStale', 'positiveEventsLive', 'cableHealth',
+  'bisPolicy', 'bisExchange', 'bisCredit',
+  'macroSignals', 'shippingRates', 'chokepoints', 'minerals', 'giving',
+  'cyberThreatsRpc', 'militaryBases', 'temporalAnomalies', 'displacement',
+  'corridorrisk', // intermediate key; data flows through transit-summaries:v1
+  'riskScores', 'serviceStatuses', // RPC-populated; no seed-meta after PR #1649 removed it from cachedFetchJson
+]);
+
+// Keys where 0 records is a valid healthy state (e.g. no airports closed).
+// The key must still exist in Redis; only the record count can be 0.
+const EMPTY_DATA_OK_KEYS = new Set(['notamClosures']);
+
+// Cascade groups: if any key in the group has data, all empty siblings are OK.
+// Theater posture uses live → stale → backup fallback chain.
+const CASCADE_GROUPS = {
+  theaterPosture:       ['theaterPosture', 'theaterPostureLive', 'theaterPostureBackup'],
+  theaterPostureLive:   ['theaterPosture', 'theaterPostureLive', 'theaterPostureBackup'],
+  theaterPostureBackup: ['theaterPosture', 'theaterPostureLive', 'theaterPostureBackup'],
+  militaryFlights:      ['militaryFlights', 'militaryFlightsStale'],
+  militaryFlightsStale: ['militaryFlights', 'militaryFlightsStale'],
+};
+
+const NEG_SENTINEL = '__WM_NEG__';
+
+async function redisPipeline(commands) {
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) throw new Error('Redis not configured');
+
+  const resp = await fetch(`${url}/pipeline`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(commands),
+    signal: AbortSignal.timeout(8_000),
+  });
+  if (!resp.ok) throw new Error(`Redis HTTP ${resp.status}`);
+  return resp.json();
+}
+
+function parseRedisValue(raw) {
+  if (!raw || raw === NEG_SENTINEL) return null;
+  try { return JSON.parse(raw); } catch { return raw; }
+}
+
+function dataSize(parsed) {
+  if (!parsed) return 0;
+  if (Array.isArray(parsed)) return parsed.length;
+  if (typeof parsed === 'object') {
+    for (const k of ['quotes', 'hexes', 'events', 'stablecoins', 'fires', 'threats',
+                      'earthquakes', 'outages', 'delays', 'items', 'predictions', 'alerts', 'awards',
+                      'papers', 'repos', 'articles', 'signals', 'rates', 'countries',
+                      'chokepoints', 'minerals', 'anomalies', 'flows', 'bases', 'flights',
+                      'theaters', 'fleets', 'warnings', 'closures', 'cables',
+                      'airports', 'closedIcaos', 'categories', 'regions', 'entries', 'satellites',
+                      'sectors', 'statuses', 'scores', 'topics', 'advisories', 'months']) {
+      if (Array.isArray(parsed[k])) return parsed[k].length;
+    }
+    return Object.keys(parsed).length;
+  }
+  return typeof parsed === 'string' ? parsed.length : 1;
+}
+
+export default async function handler(req) {
+  const headers = {
+    'Content-Type': 'application/json',
+    'Cache-Control': 'private, no-store, max-age=0',
+    'CDN-Cache-Control': 'no-store',
+    'Access-Control-Allow-Origin': '*',
+  };
+
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers });
+  }
+
+  const now = Date.now();
+
+  const allDataKeys = [
+    ...Object.values(BOOTSTRAP_KEYS),
+    ...Object.values(STANDALONE_KEYS),
+  ];
+  const allMetaKeys = Object.values(SEED_META).map(s => s.key);
+  const allKeys = [...allDataKeys, ...allMetaKeys];
+
+  let results;
+  try {
+    const commands = allKeys.map(k => ['GET', k]);
+    results = await redisPipeline(commands);
+  } catch (err) {
+    return jsonResponse({
+      status: 'REDIS_DOWN',
+      error: err.message,
+      checkedAt: new Date(now).toISOString(),
+    }, 503, headers);
+  }
+
+  const keyValues = new Map();
+  for (let i = 0; i < allKeys.length; i++) {
+    keyValues.set(allKeys[i], results[i]?.result ?? null);
+  }
+
+  const checks = {};
+  let totalChecks = 0;
+  let okCount = 0;
+  let warnCount = 0;
+  let critCount = 0;
+
+  for (const [name, redisKey] of Object.entries(BOOTSTRAP_KEYS)) {
+    totalChecks++;
+    const raw = keyValues.get(redisKey);
+    const parsed = parseRedisValue(raw);
+    const size = dataSize(parsed);
+    const seedCfg = SEED_META[name];
+
+    let seedAge = null;
+    let seedStale = null;
+    if (seedCfg) {
+      const metaRaw = keyValues.get(seedCfg.key);
+      const meta = parseRedisValue(metaRaw);
+      if (meta?.fetchedAt) {
+        seedAge = Math.round((now - meta.fetchedAt) / 60_000);
+        seedStale = seedAge > seedCfg.maxStaleMin;
+      } else {
+        seedStale = true;
+      }
+    }
+
+    let status;
+    if (!parsed || raw === NEG_SENTINEL) {
+      status = 'EMPTY';
+      critCount++;
+    } else if (size === 0) {
+      status = 'EMPTY_DATA';
+      critCount++;
+    } else if (seedStale === true) {
+      status = 'STALE_SEED';
+      warnCount++;
+    } else {
+      status = 'OK';
+      okCount++;
+    }
+
+    const entry = { status, records: size };
+    if (seedAge !== null) entry.seedAgeMin = seedAge;
+    if (seedCfg) entry.maxStaleMin = seedCfg.maxStaleMin;
+    checks[name] = entry;
+  }
+
+  for (const [name, redisKey] of Object.entries(STANDALONE_KEYS)) {
+    totalChecks++;
+    const raw = keyValues.get(redisKey);
+    const parsed = parseRedisValue(raw);
+    const size = dataSize(parsed);
+    const isOnDemand = ON_DEMAND_KEYS.has(name);
+    const seedCfg = SEED_META[name];
+
+    // Freshness tracking for standalone keys (same logic as bootstrap keys)
+    let seedAge = null;
+    let seedStale = null;
+    if (seedCfg) {
+      const metaRaw = keyValues.get(seedCfg.key);
+      const meta = parseRedisValue(metaRaw);
+      if (meta?.fetchedAt) {
+        seedAge = Math.round((now - meta.fetchedAt) / 60_000);
+        seedStale = seedAge > seedCfg.maxStaleMin;
+      } else {
+        // No seed-meta → data exists but freshness is unknown → stale
+        seedStale = true;
+      }
+    }
+
+    // Cascade: if this key is empty but a sibling in the cascade group has data, it's OK.
+    const cascadeSiblings = CASCADE_GROUPS[name];
+    let cascadeCovered = false;
+    if (cascadeSiblings && (!parsed || size === 0)) {
+      for (const sibling of cascadeSiblings) {
+        if (sibling === name) continue;
+        const sibKey = STANDALONE_KEYS[sibling];
+        if (!sibKey) continue;
+        const sibRaw = keyValues.get(sibKey);
+        const sibParsed = parseRedisValue(sibRaw);
+        if (sibParsed && dataSize(sibParsed) > 0) {
+          cascadeCovered = true;
+          break;
+        }
+      }
+    }
+
+    let status;
+    if (!parsed || raw === NEG_SENTINEL) {
+      if (cascadeCovered) {
+        status = 'OK_CASCADE';
+        okCount++;
+      } else if (EMPTY_DATA_OK_KEYS.has(name) && seedStale === false) {
+        status = 'OK';
+        okCount++;
+      } else if (isOnDemand) {
+        status = 'EMPTY_ON_DEMAND';
+        warnCount++;
+      } else {
+        status = 'EMPTY';
+        critCount++;
+      }
+    } else if (size === 0) {
+      if (cascadeCovered) {
+        status = 'OK_CASCADE';
+        okCount++;
+      } else if (EMPTY_DATA_OK_KEYS.has(name)) {
+        status = 'OK';
+        okCount++;
+      } else if (isOnDemand) {
+        status = 'EMPTY_ON_DEMAND';
+        warnCount++;
+      } else {
+        status = 'EMPTY_DATA';
+        critCount++;
+      }
+    } else if (seedStale === true) {
+      status = 'STALE_SEED';
+      warnCount++;
+    } else {
+      status = 'OK';
+      okCount++;
+    }
+
+    const entry = { status, records: size };
+    if (seedAge !== null) entry.seedAgeMin = seedAge;
+    if (seedCfg) entry.maxStaleMin = seedCfg.maxStaleMin;
+    checks[name] = entry;
+  }
+
+  // On-demand keys that simply haven't been requested yet should not affect overall status.
+  const onDemandWarnCount = Object.values(checks).filter(c => c.status === 'EMPTY_ON_DEMAND').length;
+  const realWarnCount = warnCount - onDemandWarnCount;
+
+  let overall;
+  if (critCount === 0 && realWarnCount === 0) overall = 'HEALTHY';
+  else if (critCount === 0) overall = 'WARNING';
+  else if (critCount <= 3) overall = 'DEGRADED';
+  else overall = 'UNHEALTHY';
+
+  const httpStatus = overall === 'HEALTHY' || overall === 'WARNING' ? 200 : 503;
+
+  const url = new URL(req.url);
+  const compact = url.searchParams.get('compact') === '1';
+
+  const body = {
+    status: overall,
+    summary: {
+      total: totalChecks,
+      ok: okCount,
+      warn: warnCount,
+      crit: critCount,
+    },
+    checkedAt: new Date(now).toISOString(),
+  };
+
+  if (!compact) {
+    body.checks = checks;
+  } else {
+    const problems = {};
+    for (const [name, check] of Object.entries(checks)) {
+      if (check.status !== 'OK' && check.status !== 'OK_CASCADE') problems[name] = check;
+    }
+    if (Object.keys(problems).length > 0) body.problems = problems;
+  }
+
+  return new Response(JSON.stringify(body, null, compact ? 0 : 2), {
+    status: httpStatus,
+    headers,
+  });
+}
