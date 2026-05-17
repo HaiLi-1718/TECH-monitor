@@ -1,5 +1,6 @@
 import { isDesktopRuntime } from '../services/runtime';
 import { invokeTauri } from '../services/tauri-bridge';
+import { SITE_VARIANT } from '@/config';
 import { t } from '../services/i18n';
 import { h, replaceChildren, safeHtml } from '../utils/dom-utils';
 import { trackPanelResized } from '@/services/analytics';
@@ -17,6 +18,18 @@ export interface PanelOptions {
   closable?: boolean;
   defaultRowSpan?: number;
 }
+
+/** localtech panels that show the header expand (⛶) control */
+const LOCALTECH_EXPANDABLE_PANEL_IDS = new Set([
+  'insights',
+  'policy',
+  'security',
+  'biopharma',
+  'tech',
+  'ai',
+  'startups',
+  'events',
+]);
 
 const PANEL_SPANS_KEY = 'worldmonitor-panel-spans';
 
@@ -203,6 +216,13 @@ export class Panel {
   private retryAttempt = 0;
   private _fetching = false;
   private _locked = false;
+  private isPanelExpanded = false;
+  private previousExpandRowSpanClass: string | null = null;
+  private previousExpandColSpanClass: string | null = null;
+  private expandBtn: HTMLButtonElement | null = null;
+  private readonly expandEscHandler = (e: KeyboardEvent) => {
+    if (e.key === 'Escape' && this.isPanelExpanded) this.togglePanelExpand();
+  };
 
   constructor(options: PanelOptions) {
     this.panelId = options.id;
@@ -995,7 +1015,65 @@ export class Panel {
     return error instanceof DOMException && error.name === 'AbortError';
   }
 
+  /** localtech: add ⛶ expand control in the panel header (span-4 × col-span-3). */
+  protected setupLocaltechExpandButton(): void {
+    if (SITE_VARIANT !== 'localtech') return;
+    if (!LOCALTECH_EXPANDABLE_PANEL_IDS.has(this.panelId)) return;
+    if (this.expandBtn) return;
+
+    const btn = document.createElement('button');
+    btn.className = 'panel-sort-btn';
+    btn.type = 'button';
+    btn.title = '放大面板';
+    btn.setAttribute('aria-label', '放大面板');
+    btn.textContent = '⛶';
+    btn.addEventListener('click', () => this.togglePanelExpand());
+    const countEl = this.header.querySelector('.panel-count');
+    if (countEl) this.header.insertBefore(btn, countEl);
+    else this.header.appendChild(btn);
+    this.expandBtn = btn;
+  }
+
+  protected togglePanelExpand(): void {
+    if (!this.isPanelExpanded) {
+      this.previousExpandRowSpanClass = this.getExpandRowSpanClass();
+      this.previousExpandColSpanClass = this.getExpandColSpanClass();
+      this.element.classList.remove('span-1', 'span-2', 'span-3', 'span-4');
+      this.element.classList.remove('col-span-1', 'col-span-2', 'col-span-3');
+      this.element.classList.add('span-4', 'col-span-3');
+      this.isPanelExpanded = true;
+      if (this.expandBtn) {
+        this.expandBtn.title = '还原面板';
+        this.expandBtn.setAttribute('aria-label', '还原面板');
+        this.expandBtn.textContent = '🗗';
+      }
+      window.addEventListener('keydown', this.expandEscHandler);
+      return;
+    }
+
+    this.element.classList.remove('span-1', 'span-2', 'span-3', 'span-4');
+    this.element.classList.remove('col-span-1', 'col-span-2', 'col-span-3');
+    if (this.previousExpandRowSpanClass) this.element.classList.add(this.previousExpandRowSpanClass);
+    if (this.previousExpandColSpanClass) this.element.classList.add(this.previousExpandColSpanClass);
+    this.isPanelExpanded = false;
+    if (this.expandBtn) {
+      this.expandBtn.title = '放大面板';
+      this.expandBtn.setAttribute('aria-label', '放大面板');
+      this.expandBtn.textContent = '⛶';
+    }
+    window.removeEventListener('keydown', this.expandEscHandler);
+  }
+
+  private getExpandRowSpanClass(): string | null {
+    return ['span-1', 'span-2', 'span-3', 'span-4'].find((name) => this.element.classList.contains(name)) ?? null;
+  }
+
+  private getExpandColSpanClass(): string | null {
+    return ['col-span-1', 'col-span-2', 'col-span-3'].find((name) => this.element.classList.contains(name)) ?? null;
+  }
+
   public destroy(): void {
+    window.removeEventListener('keydown', this.expandEscHandler);
     this.abortController.abort();
     this.clearRetryCountdown();
     if (this.colSpanReconcileRaf !== null) {

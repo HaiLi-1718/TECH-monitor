@@ -9,8 +9,6 @@ import type { TechEvent, ListTechEventsResponse } from '@/generated/client/world
 import type { NewsItem, DeductContextDetail } from '@/types';
 import { buildNewsContext } from '@/utils/news-context';
 import { getHydratedData } from '@/services/bootstrap';
-import { SITE_VARIANT } from '@/config';
-
 type ViewMode = 'upcoming' | 'conferences' | 'earnings' | 'all';
 
 const researchClient = new ResearchServiceClient(getRpcBaseUrl(), { fetch: (...args) => globalThis.fetch(...args) });
@@ -20,72 +18,12 @@ export class TechEventsPanel extends Panel {
   private events: TechEvent[] = [];
   private loading = true;
   private error: string | null = null;
-  private isExpanded = false;
-  private previousRowSpanClass: string | null = null;
-  private previousColSpanClass: string | null = null;
-  private expandBtn: HTMLButtonElement | null = null;
-  private readonly escHandler = (e: KeyboardEvent) => {
-    if (e.key === 'Escape' && this.isExpanded) this.toggleExpand();
-  };
 
   constructor(id: string, private getLatestNews?: () => NewsItem[]) {
     super({ id, title: t('panels.events'), showCount: true });
     this.element.classList.add('panel-tall');
-    this.createExpandButtonIfNeeded();
+    this.setupLocaltechExpandButton();
     void this.fetchEvents();
-  }
-
-  private createExpandButtonIfNeeded(): void {
-    if (SITE_VARIANT !== 'localtech' || this.panelId !== 'events') return;
-    const btn = document.createElement('button');
-    btn.className = 'panel-sort-btn';
-    btn.type = 'button';
-    btn.title = '放大面板';
-    btn.setAttribute('aria-label', '放大面板');
-    btn.textContent = '⛶';
-    btn.addEventListener('click', () => this.toggleExpand());
-    const countEl = this.header.querySelector('.panel-count');
-    if (countEl) this.header.insertBefore(btn, countEl);
-    else this.header.appendChild(btn);
-    this.expandBtn = btn;
-  }
-
-  private getCurrentRowSpanClass(): string | null {
-    return ['span-1', 'span-2', 'span-3', 'span-4'].find((name) => this.element.classList.contains(name)) ?? null;
-  }
-
-  private getCurrentColSpanClass(): string | null {
-    return ['col-span-1', 'col-span-2', 'col-span-3'].find((name) => this.element.classList.contains(name)) ?? null;
-  }
-
-  private toggleExpand(): void {
-    if (!this.isExpanded) {
-      this.previousRowSpanClass = this.getCurrentRowSpanClass();
-      this.previousColSpanClass = this.getCurrentColSpanClass();
-      this.element.classList.remove('span-1', 'span-2', 'span-3', 'span-4');
-      this.element.classList.remove('col-span-1', 'col-span-2', 'col-span-3');
-      this.element.classList.add('span-4', 'col-span-3');
-      this.isExpanded = true;
-      if (this.expandBtn) {
-        this.expandBtn.title = '还原面板';
-        this.expandBtn.setAttribute('aria-label', '还原面板');
-        this.expandBtn.textContent = '🗗';
-      }
-      window.addEventListener('keydown', this.escHandler);
-      return;
-    }
-
-    this.element.classList.remove('span-1', 'span-2', 'span-3', 'span-4');
-    this.element.classList.remove('col-span-1', 'col-span-2', 'col-span-3');
-    if (this.previousRowSpanClass) this.element.classList.add(this.previousRowSpanClass);
-    if (this.previousColSpanClass) this.element.classList.add(this.previousColSpanClass);
-    this.isExpanded = false;
-    if (this.expandBtn) {
-      this.expandBtn.title = '放大面板';
-      this.expandBtn.setAttribute('aria-label', '放大面板');
-      this.expandBtn.textContent = '⛶';
-    }
-    window.removeEventListener('keydown', this.escHandler);
   }
 
   private async fetchEvents(): Promise<void> {
@@ -339,7 +277,6 @@ export class TechEventsPanel extends Panel {
   }
 
   public override destroy(): void {
-    window.removeEventListener('keydown', this.escHandler);
     super.destroy();
   }
 }

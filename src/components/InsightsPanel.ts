@@ -50,6 +50,8 @@ export class InsightsPanel extends Panel {
         void this.onAiFlowChanged();
       });
     }
+
+    this.setupLocaltechExpandButton();
   }
 
   public setMilitaryFlights(flights: MilitaryFlight[]): void {
