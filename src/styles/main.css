@@ -1373,6 +1373,9 @@ body.panel-resize-active iframe {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .panel-title {
@@ -1381,10 +1384,22 @@ body.panel-resize-active iframe {
   text-transform: uppercase;
   letter-spacing: 1px;
   color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* Push the first element after header-left to the right; subsequent siblings flow via gap */
-.panel-header > .panel-header-left + * {
+html[lang^="zh"] .panel-title,
+html[data-variant="localtech"] .panel-title {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
   margin-left: auto;
 }
 
@@ -1514,6 +1529,10 @@ body.panel-resize-active iframe {
   border-radius: 10px;
   border: 1px solid transparent;
   color: var(--text);
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
 }
 
 .panel-data-badge.live {

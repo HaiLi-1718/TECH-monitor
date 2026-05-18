@@ -155,11 +155,11 @@ export class NewsPanel extends Panel {
       }
     });
 
-    const countEl = this.header.querySelector('.panel-count');
+    const countEl = this.headerActions.querySelector('.panel-count');
     if (countEl) {
-      this.header.insertBefore(this.sortBtn, countEl);
+      this.headerActions.insertBefore(this.sortBtn, countEl);
     } else {
-      this.header.appendChild(this.sortBtn);
+      this.headerActions.appendChild(this.sortBtn);
     }
   }
 
@@ -201,11 +201,11 @@ export class NewsPanel extends Panel {
     this.summaryBtn.addEventListener('click', () => this.handleSummarize());
 
     // Insert before count element (use inherited this.header directly)
-    const countEl = this.header.querySelector('.panel-count');
+    const countEl = this.headerActions.querySelector('.panel-count');
     if (countEl) {
-      this.header.insertBefore(this.summaryBtn, countEl);
+      this.headerActions.insertBefore(this.summaryBtn, countEl);
     } else {
-      this.header.appendChild(this.summaryBtn);
+      this.headerActions.appendChild(this.summaryBtn);
     }
   }
 

@@ -182,6 +182,7 @@ export class Panel {
   protected header: HTMLElement;
   protected countEl: HTMLElement | null = null;
   protected statusBadgeEl: HTMLElement | null = null;
+  protected headerActions: HTMLElement;
   protected newBadgeEl: HTMLElement | null = null;
   protected panelId: string;
   private abortController: AbortController = new AbortController();
@@ -277,17 +278,22 @@ export class Panel {
 
     this.header.appendChild(headerLeft);
 
+    this.headerActions = document.createElement('div');
+    this.headerActions.className = 'panel-header-actions';
+
     this.statusBadgeEl = document.createElement('span');
     this.statusBadgeEl.className = 'panel-data-badge';
     this.statusBadgeEl.style.display = 'none';
-    this.header.appendChild(this.statusBadgeEl);
+    this.headerActions.appendChild(this.statusBadgeEl);
 
     if (options.showCount) {
       this.countEl = document.createElement('span');
       this.countEl.className = 'panel-count';
       this.countEl.textContent = '0';
-      this.header.appendChild(this.countEl);
+      this.headerActions.appendChild(this.countEl);
     }
+
+    this.header.appendChild(this.headerActions);
 
     if (options.closable !== false) {
       this.appendCloseButton();
@@ -686,7 +692,7 @@ export class Panel {
         detail: { panelId: this.panelId },
       }));
     });
-    this.header.appendChild(closeBtn);
+    this.headerActions.appendChild(closeBtn);
   }
 
   public getElement(): HTMLElement {
@@ -1028,9 +1034,9 @@ export class Panel {
     btn.setAttribute('aria-label', '放大面板');
     btn.textContent = '⛶';
     btn.addEventListener('click', () => this.togglePanelExpand());
-    const countEl = this.header.querySelector('.panel-count');
-    if (countEl) this.header.insertBefore(btn, countEl);
-    else this.header.appendChild(btn);
+    const countEl = this.headerActions.querySelector('.panel-count');
+    if (countEl) this.headerActions.insertBefore(btn, countEl);
+    else this.headerActions.appendChild(btn);
     this.expandBtn = btn;
   }
 
