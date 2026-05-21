@@ -5,16 +5,40 @@ import type {
   ChokepointInfo,
 } from '../../../../src/generated/server/worldmonitor/supply_chain/v1/service_server';
 
-import type {
-  ListNavigationalWarningsResponse,
-  GetVesselSnapshotResponse,
-  NavigationalWarning,
-  AisDisruption,
-} from '../../../../src/generated/server/worldmonitor/maritime/v1/service_server';
+// Stub types and functions — maritime handler directory was deleted.
+// The chokepoint pipeline now returns empty upstream data for warnings/vessels.
+interface NavigationalWarning {
+  title: string;
+  area: string;
+  text: string;
+  location?: { latitude: number; longitude: number };
+}
+interface AisDisruption {
+  type: string;
+  name: string;
+  region: string;
+  description: string;
+  location?: { latitude: number; longitude: number };
+  severity: string;
+}
+interface ListNavigationalWarningsResponse {
+  warnings: NavigationalWarning[];
+  pagination?: unknown;
+}
+interface GetVesselSnapshotResponse {
+  snapshot?: { disruptions: AisDisruption[] };
+}
 
 import { cachedFetchJson, getCachedJson, setCachedJson } from '../../../_shared/redis';
-import { listNavigationalWarnings } from '../../maritime/v1/list-navigational-warnings';
-import { getVesselSnapshot } from '../../maritime/v1/get-vessel-snapshot';
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function listNavigationalWarnings(_ctx: unknown, _req: unknown): Promise<ListNavigationalWarningsResponse> {
+  return { warnings: [], pagination: undefined };
+}
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function getVesselSnapshot(_ctx: unknown, _req: unknown): Promise<GetVesselSnapshotResponse> {
+  return { snapshot: undefined };
+}
 import type { PortWatchData } from './_portwatch-upstream';
 import { CANONICAL_CHOKEPOINTS } from './_chokepoint-ids';
 // @ts-expect-error — .mjs module, no declaration file

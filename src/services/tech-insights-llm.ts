@@ -1,7 +1,6 @@
 import type { NewsItem } from '@/types';
 import { NewsServiceClient } from '@/generated/client/worldmonitor/news/v1/service_client';
 import { getRpcBaseUrl } from '@/services/rpc-client';
-import { SITE_VARIANT } from '@/config';
 import { getCurrentLanguage } from '@/services/i18n';
 import { isFeatureAvailable, type RuntimeFeatureId } from '@/services/runtime-config';
 
@@ -65,7 +64,7 @@ export async function fetchRankedTechInsights(
         headlines,
         mode: 'tech_insights',
         geoContext: '',
-        variant: SITE_VARIANT,
+        variant: 'localtech',
         lang,
       });
       if (resp.fallback || resp.status === 'SUMMARIZE_STATUS_SKIPPED') continue;

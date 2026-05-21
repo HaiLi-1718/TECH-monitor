@@ -6,7 +6,6 @@ import { formatTime, getCSSColor } from '@/utils';
 import { escapeHtml, sanitizeUrl } from '@/utils/sanitize';
 import { analysisWorker, enrichWithVelocityML, getClusterAssetContext, MAX_DISTANCE_KM, activityTracker, generateSummary, translateText } from '@/services';
 import { getSourcePropagandaRisk, getSourceTier, getSourceType } from '@/config/feeds';
-import { SITE_VARIANT } from '@/config';
 import { t, getCurrentLanguage } from '@/services/i18n';
 
 type SortMode = 'relevance' | 'newest';
@@ -125,7 +124,7 @@ export class NewsPanel extends Panel {
 
   // --- Sort toggle (#107) ---
   private get sortStorageKey(): string {
-    return `wm_sort_${SITE_VARIANT}_${this.panelId}`;
+    return `wm_sort_localtech_${this.panelId}`;
   }
 
   private loadSortMode(): SortMode {
@@ -215,7 +214,7 @@ export class NewsPanel extends Panel {
 
     // Check cache first (include variant, version, and language)
     const currentLang = getCurrentLanguage();
-    const cacheKey = `panel_summary_v3_${SITE_VARIANT}_${this.panelId}_${currentLang}`;
+    const cacheKey = `panel_summary_v3_localtech_${this.panelId}_${currentLang}`;
     const cached = this.getCachedSummary(cacheKey);
     if (cached) {
       this.showSummary(cached);

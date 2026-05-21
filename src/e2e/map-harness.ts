@@ -3,7 +3,6 @@ import '../styles/main.css';
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import { DeckGLMap } from '../components/DeckGLMap';
 import {
-  SITE_VARIANT,
   INTEL_HOTSPOTS,
   CONFLICT_ZONES,
   MILITARY_BASES,
@@ -22,10 +21,6 @@ import {
   SPACEPORTS,
   APT_GROUPS,
   CRITICAL_MINERALS,
-  STOCK_EXCHANGES,
-  FINANCIAL_CENTERS,
-  CENTRAL_BANKS,
-  COMMODITY_HUBS,
 } from '../config';
 import type {
   AisDensityZone,
@@ -447,11 +442,6 @@ const [techHQLon, techHQLat] = firstLatLon(TECH_HQS, [-122.0, 37.3]);
 const [cloudRegionLon, cloudRegionLat] = firstLatLon(CLOUD_REGIONS, [-122.3, 37.6]);
 const [aptLon, aptLat] = firstLatLon(APT_GROUPS, [116.4, 39.9]);
 const [portLon, portLat] = firstLatLon(PORTS, [32.5, 29.9]);
-const [exchangeLon, exchangeLat] = firstLatLon(STOCK_EXCHANGES, [-74.0, 40.7]);
-const [financialCenterLon, financialCenterLat] = firstLatLon(FINANCIAL_CENTERS, [-74.0, 40.7]);
-const [centralBankLon, centralBankLat] = firstLatLon(CENTRAL_BANKS, [-77.0, 38.9]);
-const [commodityHubLon, commodityHubLat] = firstLatLon(COMMODITY_HUBS, [-87.6, 41.8]);
-
 const VISUAL_SCENARIOS: VisualScenario[] = [
   {
     id: 'conflicts-z4',
@@ -699,38 +689,6 @@ const VISUAL_SCENARIOS: VisualScenario[] = [
     expectedDeckLayers: ['tech-event-clusters-layer'],
     expectedSelectors: [],
   },
-  {
-    id: 'stock-exchanges-z5',
-    variant: 'finance',
-    enabledLayers: ['stockExchanges'],
-    camera: toCamera(exchangeLon, exchangeLat, 5.2),
-    expectedDeckLayers: ['stock-exchanges-layer'],
-    expectedSelectors: [],
-  },
-  {
-    id: 'financial-centers-z5',
-    variant: 'finance',
-    enabledLayers: ['financialCenters'],
-    camera: toCamera(financialCenterLon, financialCenterLat, 5.2),
-    expectedDeckLayers: ['financial-centers-layer'],
-    expectedSelectors: [],
-  },
-  {
-    id: 'central-banks-z5',
-    variant: 'finance',
-    enabledLayers: ['centralBanks'],
-    camera: toCamera(centralBankLon, centralBankLat, 5.2),
-    expectedDeckLayers: ['central-banks-layer'],
-    expectedSelectors: [],
-  },
-  {
-    id: 'commodity-hubs-z5',
-    variant: 'finance',
-    enabledLayers: ['commodityHubs'],
-    camera: toCamera(commodityHubLon, commodityHubLat, 5.2),
-    expectedDeckLayers: ['commodity-hubs-layer'],
-    expectedSelectors: [],
-  },
   // Note: `sanctions` has no map renderer in DeckGLMap today; excluded from visual scenarios.
 ];
 
@@ -742,11 +700,7 @@ const filterScenariosForVariant = (variant: HarnessVariant): VisualScenario[] =>
   );
 };
 
-const currentHarnessVariant: HarnessVariant = SITE_VARIANT === 'tech' || SITE_VARIANT === 'localtech'
-  ? 'tech'
-  : SITE_VARIANT === 'finance'
-  ? 'finance'
-  : 'full';
+const currentHarnessVariant: HarnessVariant = 'tech';
 
 const buildProtests = (scenario: Scenario): SocialUnrestEvent[] => {
   const title =

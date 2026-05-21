@@ -60,30 +60,14 @@ export function getProviderCredentials(provider: string): ProviderCredentials | 
   }
 
   if (provider === 'openrouter') {
-    // Primary: OPENROUTER_* — used by SummarizeArticle RPC (news/v1).
-    // Fallback: LLM_API_URL=https://openrouter.ai/... + LLM_API_KEY, or LLM_API_KEY alone (OpenRouter sk-or-v1-*).
-    let apiKey = (process.env.OPENROUTER_API_KEY || '').trim() || undefined;
-    let model =
+    // Only use explicit OPENROUTER_API_KEY; do NOT auto-detect from LLM_API_KEY.
+    // (Region-blocked users rely on generic provider with LLM_API_URL + LLM_API_KEY.)
+    const apiKey = (process.env.OPENROUTER_API_KEY || '').trim() || undefined;
+    if (!apiKey) return null;
+    const model =
       process.env.OPENROUTER_MODEL ||
       process.env.LLM_MODEL ||
       'google/gemini-2.5-flash';
-    const llmRaw = process.env.LLM_API_KEY?.trim();
-    if (!apiKey && llmRaw) {
-      try {
-        const urlStr = process.env.LLM_API_URL?.trim();
-        if (urlStr) {
-          const u = new URL(urlStr);
-          if (u.hostname.includes('openrouter.ai')) {
-            apiKey = llmRaw;
-          }
-        } else if (/^sk-or-v1-/i.test(llmRaw)) {
-          apiKey = llmRaw;
-        }
-      } catch {
-        /* ignore */
-      }
-    }
-    if (!apiKey) return null;
 
     let apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
     const rawUrl = process.env.LLM_API_URL?.trim();

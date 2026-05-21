@@ -1,6 +1,5 @@
 import { isDesktopRuntime } from '../services/runtime';
 import { invokeTauri } from '../services/tauri-bridge';
-import { SITE_VARIANT } from '@/config';
 import { t } from '../services/i18n';
 import { h, replaceChildren, safeHtml } from '../utils/dom-utils';
 import { trackPanelResized } from '@/services/analytics';
@@ -1023,7 +1022,6 @@ export class Panel {
 
   /** localtech: add ⛶ expand control in the panel header (span-4 × col-span-3). */
   protected setupLocaltechExpandButton(): void {
-    if (SITE_VARIANT !== 'localtech') return;
     if (!LOCALTECH_EXPANDABLE_PANEL_IDS.has(this.panelId)) return;
     if (this.expandBtn) return;
 

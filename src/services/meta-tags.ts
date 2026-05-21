@@ -1,4 +1,3 @@
-import { SITE_VARIANT } from '@/config/variant';
 import { VARIANT_META } from '@/config/variant-meta';
 import { getCanonicalApiOrigin } from '@/services/runtime';
 
@@ -11,10 +10,10 @@ interface StoryMeta {
   type: 'ciianalysis' | 'crisisalert' | 'dailybrief' | 'marketfocus';
 }
 
-const variantMeta = VARIANT_META[SITE_VARIANT] ?? VARIANT_META.full;
+const variantMeta = VARIANT_META.localtech;
 const BASE_URL = variantMeta.url.replace(/\/$/, '');
 const API_ORIGIN = getCanonicalApiOrigin();
-const DEFAULT_IMAGE = `${BASE_URL}/favico/${SITE_VARIANT === 'full' ? '' : SITE_VARIANT + '/'}og-image.png`;
+const DEFAULT_IMAGE = `${BASE_URL}/favico/localtech/og-image.png`;
 
 export function updateMetaTagsForStory(meta: StoryMeta): void {
   const { countryCode, countryName, ciiScore, ciiLevel, trend, type } = meta;

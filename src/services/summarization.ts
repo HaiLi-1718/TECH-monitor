@@ -9,7 +9,6 @@
 
 import { mlWorker } from './ml-worker';
 import { getRpcBaseUrl } from '@/services/rpc-client';
-import { SITE_VARIANT } from '@/config';
 import { BETA_MODE } from '@/config/beta';
 import { isFeatureAvailable, type RuntimeFeatureId } from './runtime-config';
 import { trackLLMUsage, trackLLMFailure } from './analytics';
@@ -82,7 +81,7 @@ async function tryApiProvider(
         headlines,
         mode: 'brief',
         geoContext: geoContext || '',
-        variant: SITE_VARIANT,
+        variant: 'localtech',
         lang: lang || 'en',
       });
     }, emptySummaryFallback);
@@ -178,7 +177,7 @@ export async function generateSummary(
   const optionsSuffix = options?.skipCloudProviders || options?.skipBrowserFallback
     ? `:opts${options.skipCloudProviders ? 'C' : ''}${options.skipBrowserFallback ? 'B' : ''}`
     : '';
-  const cacheKey = buildSummaryCacheKey(headlines, 'brief', geoContext, SITE_VARIANT, lang) + optionsSuffix;
+  const cacheKey = buildSummaryCacheKey(headlines, 'brief', geoContext, 'localtech', lang) + optionsSuffix;
 
   return summaryResultBreaker.execute(
     async () => {
@@ -207,7 +206,7 @@ async function generateSummaryInternal(
 ): Promise<SummarizationResult | null> {
   if (!options?.skipCloudProviders) {
     try {
-      const cacheKey = buildSummaryCacheKey(headlines, 'brief', geoContext, SITE_VARIANT, lang);
+      const cacheKey = buildSummaryCacheKey(headlines, 'brief', geoContext, 'localtech', lang);
       const cached = await newsClient.getSummarizeArticleCache({ cacheKey });
       if (cached.summary) {
         return { summary: cached.summary, provider: 'cache', model: cached.model || '', cached: true };

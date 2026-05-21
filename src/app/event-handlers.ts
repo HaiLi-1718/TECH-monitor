@@ -1,5 +1,4 @@
 import type { AppContext, AppModule } from '@/app/app-context';
-import type { AirlineIntelPanel } from '@/components/AirlineIntelPanel';
 import type { PanelConfig, MapLayers } from '@/types';
 import type { MapView } from '@/components';
 import type { ClusteredEvent } from '@/types';
@@ -7,10 +6,7 @@ import type { DashboardSnapshot } from '@/services/storage';
 import {
   PlaybackControl,
   StatusPanel,
-  PizzIntIndicator,
   LlmStatusIndicator,
-  CIIPanel,
-  PredictionPanel,
 } from '@/components';
 import {
   buildMapUrl,
@@ -23,12 +19,9 @@ import {
 import {
   IDLE_PAUSE_MS,
   STORAGE_KEYS,
-  SITE_VARIANT,
-  IS_TECH_LIKE_VARIANT,
   LAYER_TO_SOURCE,
   FEEDS,
   INTEL_SOURCES,
-  DEFAULT_PANELS,
 } from '@/config';
 import { VARIANT_META } from '@/config/variant-meta';
 import { isDesktopRuntime } from '@/services/runtime';
@@ -53,7 +46,6 @@ import { dataFreshness } from '@/services/data-freshness';
 import { mlWorker } from '@/services/ml-worker';
 import { UnifiedSettings } from '@/components/UnifiedSettings';
 import { t } from '@/services/i18n';
-import { TvModeController } from '@/services/tv-mode';
 
 export interface EventHandlerCallbacks {
   updateSearchIndex: () => void;
@@ -78,7 +70,7 @@ export class EventHandlerManager implements AppModule {
   private boundDesktopExternalLinkHandler: ((e: MouseEvent) => void) | null = null;
   private boundIdleResetHandler: (() => void) | null = null;
   private boundStorageHandler: ((e: StorageEvent) => void) | null = null;
-  private boundTvKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
+
   private boundFocalPointsReadyHandler: (() => void) | null = null;
   private boundThemeChangedHandler: (() => void) | null = null;
   private boundDropdownClickHandler: ((e: MouseEvent) => void) | null = null;
@@ -116,7 +108,6 @@ export class EventHandlerManager implements AppModule {
   init(): void {
     this.setupEventListeners();
     this.setupIdleDetection();
-    this.setupTvMode();
   }
 
   private performUndo(): void {
@@ -135,48 +126,6 @@ export class EventHandlerManager implements AppModule {
     if (panel && 'fetchData' in panel) {
       (panel as any).fetchData();
     }
-  }
-
-  private setupTvMode(): void {
-    if (SITE_VARIANT !== 'happy') return;
-
-    const tvBtn = document.getElementById('tvModeBtn');
-    const tvExitBtn = document.getElementById('tvExitBtn');
-    if (tvBtn) {
-      tvBtn.addEventListener('click', () => this.toggleTvMode());
-    }
-    if (tvExitBtn) {
-      tvExitBtn.addEventListener('click', () => this.toggleTvMode());
-    }
-    // Keyboard shortcut: Shift+T
-    this.boundTvKeydownHandler = (e: KeyboardEvent) => {
-      if (e.shiftKey && e.key === 'T' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        const active = document.activeElement;
-        if (active?.tagName !== 'INPUT' && active?.tagName !== 'TEXTAREA') {
-          e.preventDefault();
-          this.toggleTvMode();
-        }
-      }
-    };
-    document.addEventListener('keydown', this.boundTvKeydownHandler);
-  }
-
-  private toggleTvMode(): void {
-    const panelKeys = Object.keys(DEFAULT_PANELS).filter(
-      key => this.ctx.panelSettings[key]?.enabled !== false
-    );
-    if (!this.ctx.tvMode) {
-      this.ctx.tvMode = new TvModeController({
-        panelKeys,
-        onPanelChange: () => {
-          document.getElementById('tvModeBtn')?.classList.toggle('active', this.ctx.tvMode?.active ?? false);
-        }
-      });
-    } else {
-      this.ctx.tvMode.updatePanelKeys(panelKeys);
-    }
-    this.ctx.tvMode.toggle();
-    document.getElementById('tvModeBtn')?.classList.toggle('active', this.ctx.tvMode.active);
   }
 
   destroy(): void {
@@ -219,10 +168,6 @@ export class EventHandlerManager implements AppModule {
     if (this.boundStorageHandler) {
       window.removeEventListener('storage', this.boundStorageHandler);
       this.boundStorageHandler = null;
-    }
-    if (this.boundTvKeydownHandler) {
-      document.removeEventListener('keydown', this.boundTvKeydownHandler);
-      this.boundTvKeydownHandler = null;
     }
     if (this.boundFocalPointsReadyHandler) {
       window.removeEventListener('focal-points-ready', this.boundFocalPointsReadyHandler);
@@ -269,8 +214,6 @@ export class EventHandlerManager implements AppModule {
       document.removeEventListener('keydown', this.boundUndoHandler);
       this.boundUndoHandler = null;
     }
-    this.ctx.tvMode?.destroy();
-    this.ctx.tvMode = null;
     this.ctx.unifiedSettings?.destroy();
     this.ctx.unifiedSettings = null;
   }
@@ -347,7 +290,7 @@ export class EventHandlerManager implements AppModule {
     this.ctx.container.querySelectorAll<HTMLAnchorElement>('.variant-option').forEach(link => {
       link.addEventListener('click', (e) => {
         const variant = link.dataset.variant;
-        if (!variant || variant === SITE_VARIANT) return;
+        if (!variant || variant === 'localtech') return;
         e.preventDefault();
         void this.navigateToVariant(variant, {
           href: link.href,
@@ -398,7 +341,6 @@ export class EventHandlerManager implements AppModule {
     document.addEventListener('visibilitychange', this.boundVisibilityHandler);
 
     this.boundFocalPointsReadyHandler = () => {
-      (this.ctx.panels.cii as CIIPanel)?.refresh(true);
       this.callbacks.refreshOpenCountryBrief?.();
     };
     window.addEventListener('focal-points-ready', this.boundFocalPointsReadyHandler);
@@ -456,7 +398,7 @@ export class EventHandlerManager implements AppModule {
     menu.querySelectorAll<HTMLButtonElement>('.mobile-menu-variant').forEach(btn => {
       btn.addEventListener('click', () => {
         const variant = btn.dataset.variant;
-        if (!variant || variant === SITE_VARIANT) return;
+        if (!variant || variant === 'localtech') return;
         void this.navigateToVariant(variant, { isLocalDev });
       });
     });
@@ -761,7 +703,7 @@ export class EventHandlerManager implements AppModule {
     variant: string,
     options: { href?: string; isLocalDev: boolean },
   ): Promise<void> {
-    trackVariantSwitch(SITE_VARIANT, variant);
+    trackVariantSwitch('localtech', variant);
     await this.exitFullscreenForNavigation();
 
     if (this.ctx.isDesktopApp || options.isLocalDev) {
@@ -818,13 +760,7 @@ export class EventHandlerManager implements AppModule {
   }
 
   setupPizzIntIndicator(): void {
-    if (IS_TECH_LIKE_VARIANT || SITE_VARIANT === 'finance' || SITE_VARIANT === 'happy') return;
-
-    this.ctx.pizzintIndicator = new PizzIntIndicator();
-    const headerLeft = this.ctx.container.querySelector('.header-left');
-    if (headerLeft) {
-      headerLeft.appendChild(this.ctx.pizzintIndicator.getElement());
-    }
+    // Simplified: always returns early for localtech variant
   }
 
   setupLlmStatusIndicator(): void {
@@ -973,7 +909,6 @@ export class EventHandlerManager implements AppModule {
       liquidity: 0,
     }));
     this.ctx.latestPredictions = predictions;
-    (this.ctx.panels.polymarket as PredictionPanel | undefined)?.renderPredictions(predictions);
 
     this.ctx.map?.setHotspotLevels(snapshot.hotspotLevels);
   }
@@ -1005,8 +940,7 @@ export class EventHandlerManager implements AppModule {
       }
 
       if (layer === 'flights') {
-        const airlineIntel = this.ctx.panels['airline-intel'] as AirlineIntelPanel | undefined;
-        airlineIntel?.setLiveMode(enabled);
+        // airline-intel panel removed
       }
 
       if (enabled) {
@@ -1016,11 +950,9 @@ export class EventHandlerManager implements AppModule {
       }
     });
 
-    // Forward live aircraft positions from map to AirlineIntelPanel + cache
+    // Cache live aircraft positions
     this.ctx.map?.setOnAircraftPositionsUpdate((positions) => {
       this.ctx.intelligenceCache.aircraftPositions = positions;
-      const airlineIntel = this.ctx.panels['airline-intel'] as AirlineIntelPanel | undefined;
-      airlineIntel?.updateLivePositions(positions);
     });
   }
 

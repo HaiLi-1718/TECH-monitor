@@ -1,4 +1,3 @@
-import { IS_TECH_LIKE_VARIANT } from '@/config';
 import { h } from '@/utils/dom-utils'; // kept for Panel base class compat
 
 export type StatusLevel = 'ok' | 'warning' | 'error' | 'disabled';
@@ -30,18 +29,6 @@ const TECH_APIS = new Set([
   'Cyber Threats API'
 ]);
 
-const WORLD_FEEDS = new Set([
-  'Politics', 'Middleeast', 'Tech', 'Ai', 'Finance',
-  'Gov', 'Intel', 'Layoffs', 'Thinktanks', 'Energy',
-  'Polymarket', 'Weather', 'NetBlocks', 'Shipping', 'Military',
-  'Cyber Threats', 'GPS Jam'
-]);
-const WORLD_APIS = new Set([
-  'RSS2JSON', 'Finnhub', 'CoinGecko', 'Polymarket', 'USGS', 'FRED',
-  'AISStream', 'GDELT Doc', 'EIA', 'USASpending', 'PizzINT', 'FIRMS',
-  'Cyber Threats API', 'BIS', 'WTO', 'SupplyChain'
-]);
-
 import { t } from '../services/i18n';
 import { Panel } from './Panel';
 
@@ -58,8 +45,8 @@ export class StatusPanel extends Panel {
   }
 
   private init(): void {
-    this.allowedFeeds = IS_TECH_LIKE_VARIANT ? TECH_FEEDS : WORLD_FEEDS;
-    this.allowedApis = IS_TECH_LIKE_VARIANT ? TECH_APIS : WORLD_APIS;
+    this.allowedFeeds = TECH_FEEDS;
+    this.allowedApis = TECH_APIS;
 
     this.element = h('div', { className: 'status-panel-container' });
     this.initDefaultStatuses();

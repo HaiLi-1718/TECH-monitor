@@ -299,7 +299,6 @@ import { installRuntimeFetchPatch, installWebApiRedirect } from '@/services/runt
 import { loadDesktopSecrets } from '@/services/runtime-config';
 import { applyStoredTheme } from '@/utils/theme-manager';
 import { applyFont } from '@/services/font-settings';
-import { SITE_VARIANT } from '@/config/variant';
 import { clearChunkReloadGuard, installChunkReloadGuard } from '@/bootstrap/chunk-reload';
 
 // Auto-reload on stale chunk 404s after deployment (Vite fires this for modulepreload failures).
@@ -323,20 +322,18 @@ loadDesktopSecrets().catch(() => {});
 applyStoredTheme();
 applyFont();
 
-// Set data-variant on <html> so CSS theme overrides activate
-if (SITE_VARIANT && SITE_VARIANT !== 'full') {
-  document.documentElement.dataset.variant = SITE_VARIANT;
+// Set data-variant on <html> so CSS theme overrides activate (variant is 'localtech')
+document.documentElement.dataset.variant = 'localtech';
 
-  // localtech reuses tech favicon assets (no separate icon pack)
-  const favAssetVariant = SITE_VARIANT === 'localtech' ? 'tech' : SITE_VARIANT;
+// localtech reuses tech favicon assets (no separate icon pack)
+const favAssetVariant = 'tech';
 
-  // Swap favicons to variant-specific versions before browser finishes fetching defaults
-  document.querySelectorAll<HTMLLinkElement>('link[rel="icon"], link[rel="apple-touch-icon"]').forEach(link => {
-    link.href = link.href
-      .replace(/\/favico\/favicon/g, `/favico/${favAssetVariant}/favicon`)
-      .replace(/\/favico\/apple-touch-icon/g, `/favico/${favAssetVariant}/apple-touch-icon`);
-  });
-}
+// Swap favicons to variant-specific versions before browser finishes fetching defaults
+document.querySelectorAll<HTMLLinkElement>('link[rel="icon"], link[rel="apple-touch-icon"]').forEach(link => {
+  link.href = link.href
+    .replace(/\/favico\/favicon/g, `/favico/${favAssetVariant}/favicon`)
+    .replace(/\/favico\/apple-touch-icon/g, `/favico/${favAssetVariant}/apple-touch-icon`);
+});
 
 // Remove no-transition class after first paint to enable smooth theme transitions
 requestAnimationFrame(() => {
