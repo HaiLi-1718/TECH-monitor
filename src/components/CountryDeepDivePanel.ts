@@ -22,11 +22,13 @@ import type {
   CountryFactsData,
 } from './CountryBriefPanel';
 import type { MapContainer } from './MapContainer';
+import { IS_TECH_LIKE_VARIANT } from '@/config/variant';
 
 type ThreatLevel = 'critical' | 'high' | 'medium' | 'low' | 'info';
 type TrendDirection = 'up' | 'down' | 'flat';
 
-const INFRA_TYPES: AssetType[] = ['pipeline', 'cable', 'datacenter', 'base', 'nuclear'];
+const TECH_INFRA_TYPES: AssetType[] = ['pipeline', 'cable', 'datacenter'];
+const FULL_INFRA_TYPES: AssetType[] = ['pipeline', 'cable', 'datacenter', 'base', 'nuclear'];
 
 const INFRA_ICONS: Record<AssetType, string> = {
   pipeline: '🛢️',
@@ -355,20 +357,21 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
       return;
     }
 
-    const assets = getNearbyInfrastructure(centroid.lat, centroid.lon, INFRA_TYPES);
+    const assets = getNearbyInfrastructure(centroid.lat, centroid.lon, this.getInfraTypes());
     if (assets.length === 0) {
       this.infrastructureBody.append(this.makeEmpty(t('countryBrief.noInfrastructure')));
       return;
     }
 
     this.infrastructureByType.clear();
-    for (const type of INFRA_TYPES) {
+    const infraTypes = this.getInfraTypes();
+    for (const type of infraTypes) {
       const matches = assets.filter((asset) => asset.type === type);
       this.infrastructureByType.set(type, matches);
     }
 
     const grid = this.el('div', 'cdp-infra-grid');
-    for (const type of INFRA_TYPES) {
+    for (const type of infraTypes) {
       const list = this.infrastructureByType.get(type) ?? [];
       if (list.length === 0) continue;
       const card = this.el('button', 'cdp-infra-card');
@@ -384,7 +387,7 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
     this.infrastructureBody.append(grid);
 
     const expandedDetails = this.el('div', 'cdp-expanded-only');
-    for (const type of INFRA_TYPES) {
+    for (const type of infraTypes) {
       const list = this.infrastructureByType.get(type) ?? [];
       if (list.length === 0) continue;
       const typeLabel = this.el('div', 'cdp-subtitle', `${INFRA_ICONS[type]} ${t(`countryBrief.infra.${type}`)}`);
@@ -625,7 +628,9 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
     const flag = this.el('span', 'cdp-flag', CountryDeepDivePanel.toFlagEmoji(code));
     const titleWrap = this.el('div', 'cdp-title-wrap');
     const name = this.el('h2', 'cdp-country-name', country);
-    const subtitle = this.el('div', 'cdp-country-subtitle', `${code.toUpperCase()} • Country Intelligence`);
+    const subtitle = this.el('div', 'cdp-country-subtitle', IS_TECH_LIKE_VARIANT
+      ? `${code.toUpperCase()} • Tech region brief`
+      : `${code.toUpperCase()} • Country Intelligence`);
     titleWrap.append(name, subtitle);
     left.append(flag, titleWrap);
 
@@ -672,31 +677,10 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
     right.append(shareBtn, maxBtn, storyButton, exportButton);
     header.append(left, right);
 
-    const scoreCard = this.el('section', 'cdp-card cdp-score-card');
-    this.scoreCard = scoreCard;
-    const top = this.el('div', 'cdp-score-top');
-    const label = this.el('span', 'cdp-score-label', t('countryBrief.instabilityIndex'));
-    const updated = this.el('span', 'cdp-updated', `Updated ${this.shortDate(score?.lastUpdated ?? new Date())}`);
-    top.append(label, updated);
-    scoreCard.append(top);
-
-    if (score) {
-      const band = this.ciiBand(score.score);
-      const scoreRow = this.el('div', 'cdp-score-row');
-      const value = this.el('div', `cdp-score-value cii-${band}`, `${score.score}/100`);
-      const trend = this.el('div', 'cdp-trend', `${this.trendArrow(score.trend)} ${score.trend}`);
-      scoreRow.append(value, trend);
-      scoreCard.append(scoreRow);
-      scoreCard.append(this.renderComponentBars(score.components));
-    } else {
-      scoreCard.append(this.makeEmpty(t('countryBrief.ciiUnavailable')));
-    }
-
     const bodyGrid = this.el('div', 'cdp-grid');
     const [signalsCard, signalBody] = this.sectionCard(t('countryBrief.activeSignals'));
     const [timelineCard, timelineBody] = this.sectionCard(t('countryBrief.timeline'));
     const [newsCard, newsBody] = this.sectionCard(t('countryBrief.topNews'));
-    const [militaryCard, militaryBody] = this.sectionCard(t('countryBrief.militaryActivity'));
     const [infraCard, infraBody] = this.sectionCard(t('countryBrief.infrastructure'));
     const [economicCard, economicBody] = this.sectionCard(t('countryBrief.economicIndicators'));
     const [marketsCard, marketsBody] = this.sectionCard(t('countryBrief.predictionMarkets'));
@@ -712,7 +696,7 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
     this.timelineBody = timelineBody;
     this.timelineBody.classList.add('cdp-timeline-mount');
     this.newsBody = newsBody;
-    this.militaryBody = militaryBody;
+    this.militaryBody = null;
     this.infrastructureBody = infraBody;
     this.economicBody = economicBody;
     this.marketsBody = marketsBody;
@@ -720,15 +704,47 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
 
     this.renderInitialSignals(signals);
     newsBody.append(this.makeLoading('Loading country headlines…'));
-    militaryBody.append(this.makeLoading('Loading flights, vessels, and nearby bases…'));
     infraBody.append(this.makeLoading('Computing nearby critical infrastructure…'));
     economicBody.append(this.makeLoading('Loading available indicators…'));
     marketsBody.append(this.makeLoading(t('countryBrief.loadingMarkets')));
     briefBody.append(this.makeLoading(t('countryBrief.generatingBrief')));
 
-    bodyGrid.append(briefCard, factsExpanded, signalsCard, timelineCard, newsCard, militaryCard, infraCard, economicCard, marketsCard);
-    shell.append(header, scoreCard, bodyGrid);
+    if (IS_TECH_LIKE_VARIANT) {
+      this.scoreCard = null;
+      bodyGrid.append(briefCard, factsExpanded, signalsCard, timelineCard, newsCard, infraCard, economicCard, marketsCard);
+      shell.append(header, bodyGrid);
+    } else {
+      const scoreCard = this.el('section', 'cdp-card cdp-score-card');
+      this.scoreCard = scoreCard;
+      const top = this.el('div', 'cdp-score-top');
+      const label = this.el('span', 'cdp-score-label', t('countryBrief.instabilityIndex'));
+      const updated = this.el('span', 'cdp-updated', `Updated ${this.shortDate(score?.lastUpdated ?? new Date())}`);
+      top.append(label, updated);
+      scoreCard.append(top);
+
+      if (score) {
+        const band = this.ciiBand(score.score);
+        const scoreRow = this.el('div', 'cdp-score-row');
+        const value = this.el('div', `cdp-score-value cii-${band}`, `${score.score}/100`);
+        const trend = this.el('div', 'cdp-trend', `${this.trendArrow(score.trend)} ${score.trend}`);
+        scoreRow.append(value, trend);
+        scoreCard.append(scoreRow);
+        scoreCard.append(this.renderComponentBars(score.components));
+      } else {
+        scoreCard.append(this.makeEmpty(t('countryBrief.ciiUnavailable')));
+      }
+
+      const [militaryCard, militaryBody] = this.sectionCard(t('countryBrief.militaryActivity'));
+      this.militaryBody = militaryBody;
+      militaryBody.append(this.makeLoading('Loading flights, vessels, and nearby bases…'));
+      bodyGrid.append(briefCard, factsExpanded, signalsCard, timelineCard, newsCard, militaryCard, infraCard, economicCard, marketsCard);
+      shell.append(header, scoreCard, bodyGrid);
+    }
     this.content.append(shell);
+  }
+
+  private getInfraTypes(): AssetType[] {
+    return IS_TECH_LIKE_VARIANT ? TECH_INFRA_TYPES : FULL_INFRA_TYPES;
   }
 
   private renderInitialSignals(signals: CountryBriefSignals): void {
@@ -737,47 +753,63 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
 
     const chips = this.el('div', 'cdp-signal-chips');
     this.addSignalChip(chips, signals.criticalNews, t('countryBrief.chips.criticalNews'), '🚨', 'conflict');
-    this.addSignalChip(chips, signals.protests, t('countryBrief.chips.protests'), '📢', 'protest');
-    this.addSignalChip(chips, signals.militaryFlights, t('countryBrief.chips.militaryAir'), '✈️', 'military');
-    this.addSignalChip(chips, signals.militaryVessels, t('countryBrief.chips.navalVessels'), '⚓', 'military');
+    if (!IS_TECH_LIKE_VARIANT) {
+      this.addSignalChip(chips, signals.protests, t('countryBrief.chips.protests'), '📢', 'protest');
+      this.addSignalChip(chips, signals.militaryFlights, t('countryBrief.chips.militaryAir'), '✈️', 'military');
+      this.addSignalChip(chips, signals.militaryVessels, t('countryBrief.chips.navalVessels'), '⚓', 'military');
+    }
     this.addSignalChip(chips, signals.outages, t('countryBrief.chips.outages'), '🌐', 'outage');
     this.addSignalChip(chips, signals.aisDisruptions, t('countryBrief.chips.aisDisruptions'), '🚢', 'outage');
     this.addSignalChip(chips, signals.satelliteFires, t('countryBrief.chips.satelliteFires'), '🔥', 'climate');
     this.addSignalChip(chips, signals.temporalAnomalies, t('countryBrief.chips.temporalAnomalies'), '⏱️', 'outage');
     this.addSignalChip(chips, signals.cyberThreats, t('countryBrief.chips.cyberThreats'), '🛡️', 'conflict');
-    this.addSignalChip(chips, signals.earthquakes, t('countryBrief.chips.earthquakes'), '🌍', 'quake');
-    if (signals.displacementOutflow > 0) {
+    if (!IS_TECH_LIKE_VARIANT) {
+      this.addSignalChip(chips, signals.earthquakes, t('countryBrief.chips.earthquakes'), '🌍', 'quake');
+    }
+    if (!IS_TECH_LIKE_VARIANT && signals.displacementOutflow > 0) {
       const fmt = signals.displacementOutflow >= 1_000_000
         ? `${(signals.displacementOutflow / 1_000_000).toFixed(1)}M`
         : `${(signals.displacementOutflow / 1000).toFixed(0)}K`;
       chips.append(this.makeSignalChip(`🌊 ${fmt} ${t('countryBrief.chips.displaced')}`, 'displacement'));
     }
-    this.addSignalChip(chips, signals.climateStress, t('countryBrief.chips.climateStress'), '🌡️', 'climate');
-    this.addSignalChip(chips, signals.conflictEvents, t('countryBrief.chips.conflictEvents'), '⚔️', 'conflict');
-    this.addSignalChip(chips, signals.activeStrikes, t('countryBrief.chips.activeStrikes'), '💥', 'conflict');
-    if (signals.travelAdvisories > 0 && signals.travelAdvisoryMaxLevel) {
+    if (!IS_TECH_LIKE_VARIANT) {
+      this.addSignalChip(chips, signals.climateStress, t('countryBrief.chips.climateStress'), '🌡️', 'climate');
+      this.addSignalChip(chips, signals.conflictEvents, t('countryBrief.chips.conflictEvents'), '⚔️', 'conflict');
+      this.addSignalChip(chips, signals.activeStrikes, t('countryBrief.chips.activeStrikes'), '💥', 'conflict');
+    }
+    if (!IS_TECH_LIKE_VARIANT && signals.travelAdvisories > 0 && signals.travelAdvisoryMaxLevel) {
       const advLabel = signals.travelAdvisoryMaxLevel === 'do-not-travel' ? t('countryBrief.chips.doNotTravel')
         : signals.travelAdvisoryMaxLevel === 'reconsider' ? t('countryBrief.chips.reconsiderTravel')
         : t('countryBrief.chips.exerciseCaution');
       chips.append(this.makeSignalChip(`⚠️ ${signals.travelAdvisories} ${t('countryBrief.chips.advisory')}: ${advLabel}`, 'advisory'));
     }
-    this.addSignalChip(chips, signals.orefSirens, t('countryBrief.chips.activeSirens'), '🚨', 'conflict');
-    this.addSignalChip(chips, signals.orefHistory24h, t('countryBrief.chips.sirens24h'), '🕓', 'conflict');
-    this.addSignalChip(chips, signals.aviationDisruptions, t('countryBrief.chips.aviationDisruptions'), '🚫', 'outage');
-    this.addSignalChip(chips, signals.gpsJammingHexes, t('countryBrief.chips.gpsJammingZones'), '📡', 'outage');
+    if (!IS_TECH_LIKE_VARIANT) {
+      this.addSignalChip(chips, signals.orefSirens, t('countryBrief.chips.activeSirens'), '🚨', 'conflict');
+      this.addSignalChip(chips, signals.orefHistory24h, t('countryBrief.chips.sirens24h'), '🕓', 'conflict');
+      this.addSignalChip(chips, signals.aviationDisruptions, t('countryBrief.chips.aviationDisruptions'), '🚫', 'outage');
+      this.addSignalChip(chips, signals.gpsJammingHexes, t('countryBrief.chips.gpsJammingZones'), '📡', 'outage');
+    }
     this.signalsBody.append(chips);
 
     this.signalBreakdownBody = this.el('div', 'cdp-signal-breakdown');
     this.signalRecentBody = this.el('div', 'cdp-signal-recent');
     this.signalsBody.append(this.signalBreakdownBody, this.signalRecentBody);
 
-    const seeded: CountryDeepDiveSignalDetails = {
-      critical: signals.criticalNews + Math.max(0, signals.activeStrikes),
-      high: signals.militaryFlights + signals.militaryVessels + signals.protests,
-      medium: signals.outages + signals.cyberThreats + signals.aisDisruptions,
-      low: signals.earthquakes + signals.temporalAnomalies + signals.satelliteFires,
-      recentHigh: [],
-    };
+    const seeded: CountryDeepDiveSignalDetails = IS_TECH_LIKE_VARIANT
+      ? {
+        critical: signals.criticalNews,
+        high: signals.cyberThreats,
+        medium: signals.outages + signals.temporalAnomalies,
+        low: signals.aisDisruptions,
+        recentHigh: [],
+      }
+      : {
+        critical: signals.criticalNews + Math.max(0, signals.activeStrikes),
+        high: signals.militaryFlights + signals.militaryVessels + signals.protests,
+        medium: signals.outages + signals.cyberThreats + signals.aisDisruptions,
+        low: signals.earthquakes + signals.temporalAnomalies + signals.satelliteFires,
+        recentHigh: [],
+      };
     this.renderSignalBreakdown(seeded);
     this.signalRecentBody.append(this.makeLoading('Loading top high-severity signals…'));
   }

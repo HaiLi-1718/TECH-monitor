@@ -120,7 +120,7 @@ export async function summarizeArticle(
               { role: 'user', content: userPrompt },
             ],
             temperature: isTechInsights ? 0.25 : 0.3,
-            max_tokens: isTechInsights ? 900 : 100,
+            max_tokens: isTechInsights ? 1200 : 1000,
             top_p: 0.9,
             ...extraBody,
           }),
@@ -161,6 +161,19 @@ export async function summarizeArticle(
           if (parsed) {
             return {
               summary: JSON.stringify({ brief: parsed.brief, indices: parsed.indices }),
+              model,
+              tokens,
+            };
+          }
+          // Models that ignore JSON (common with DeepSeek) — still return a usable brief
+          if (rawContent.length >= 20 && !hasReasoningPreamble(rawContent)) {
+            const n = uniqueHeadlines.length;
+            const indices = Array.from(
+              { length: Math.min(3, n) },
+              (_, i) => i + 1,
+            );
+            return {
+              summary: JSON.stringify({ brief: rawContent.slice(0, 800), indices }),
               model,
               tokens,
             };

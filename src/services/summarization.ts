@@ -55,11 +55,12 @@ interface ApiProviderDef {
   label: string;
 }
 
+// generic = OpenAI-compatible endpoint (e.g. DeepSeek via LLM_API_URL + LLM_API_KEY + LLM_MODEL in .env.local)
 const API_PROVIDERS: ApiProviderDef[] = [
+  { featureId: 'aiLlmGeneric',  provider: 'generic',    label: 'LLM (DeepSeek / compatible)' },
   { featureId: 'aiOllama',      provider: 'ollama',     label: 'Ollama' },
   { featureId: 'aiGroq',        provider: 'groq',       label: 'Groq AI' },
   { featureId: 'aiOpenRouter',  provider: 'openrouter', label: 'OpenRouter' },
-  { featureId: 'aiLlmGeneric',  provider: 'generic',    label: 'LLM_API_URL' },
 ];
 
 let lastAttemptedProvider = 'none';
@@ -170,7 +171,7 @@ export async function generateSummary(
   lang: string = 'en',
   options?: SummarizeOptions,
 ): Promise<SummarizationResult | null> {
-  if (!headlines || headlines.length < 2) {
+  if (!headlines || headlines.length === 0) {
     return null;
   }
 

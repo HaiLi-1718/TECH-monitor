@@ -208,9 +208,27 @@ export class NewsPanel extends Panel {
     }
   }
 
+  private collectSummarizeHeadlines(): string[] {
+    const clusterTitles = this.lastRawClusters
+      ? [...this.lastRawClusters]
+          .sort((a, b) => b.lastUpdated.getTime() - a.lastUpdated.getTime())
+          .map((c) => c.primaryTitle.trim())
+          .filter(Boolean)
+      : [...this.currentHeadlines];
+
+    const unique = [...new Set(clusterTitles)];
+    if (unique.length >= 2) return unique.slice(0, 8);
+
+    const flatTitles = (this.lastRawItems ?? [])
+      .map((item) => item.title.trim())
+      .filter(Boolean);
+    return [...new Set([...unique, ...flatTitles])].slice(0, 8);
+  }
+
   private async handleSummarize(): Promise<void> {
     if (this.isSummarizing || !this.summaryContainer || !this.summaryBtn) return;
-    if (this.currentHeadlines.length === 0) return;
+    const headlines = this.collectSummarizeHeadlines();
+    if (headlines.length === 0) return;
 
     // Check cache first (include variant, version, and language)
     const currentLang = getCurrentLanguage();
@@ -231,7 +249,7 @@ export class NewsPanel extends Panel {
     const sigAtStart = this.lastHeadlineSignature;
 
     try {
-      const result = await generateSummary(this.currentHeadlines.slice(0, 8), undefined, this.panelId, currentLang);
+      const result = await generateSummary(headlines, undefined, '', currentLang);
       if (!this.element?.isConnected) return;
       if (this.lastHeadlineSignature !== sigAtStart) {
         this.hideSummary();
@@ -460,7 +478,7 @@ export class NewsPanel extends Panel {
     this.setContent(html);
   }
 
-  private renderClusters(clusters: ClusteredEvent[]): void {
+  public renderClusters(clusters: ClusteredEvent[]): void {
     this.lastRawClusters = clusters;
     this.lastRawItems = null;
 

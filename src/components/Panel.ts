@@ -800,12 +800,7 @@ export class Panel {
       lockedChildren.push(featureList);
     }
 
-    const ctaBtn = h('button', { type: 'button', className: 'panel-locked-cta' }, t('premium.joinWaitlist'));
-    if (isDesktopRuntime()) {
-      ctaBtn.addEventListener('click', () => void invokeTauri<void>('open_url', { url: 'https://worldmonitor.app/pro' }).catch(() => window.open('https://worldmonitor.app/pro', '_blank')));
-    } else {
-      ctaBtn.addEventListener('click', () => window.open('https://worldmonitor.app/pro', '_blank'));
-    }
+    const ctaBtn = h('button', { type: 'button', className: 'panel-locked-cta', disabled: 'true' }, t('premium.joinWaitlist'));
     lockedChildren.push(ctaBtn);
 
     replaceChildren(this.content, h('div', { className: 'panel-locked-state' }, ...lockedChildren));

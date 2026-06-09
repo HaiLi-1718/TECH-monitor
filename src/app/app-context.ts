@@ -73,6 +73,8 @@ export interface AppContext {
   happyAllItems: NewsItem[];
   isDestroyed: boolean;
   isPlaybackMode: boolean;
+  /** Upper bound for news when scrubbing historical snapshots (ms epoch). */
+  playbackSnapshotTime: number | null;
   isIdle: boolean;
   initialLoadComplete: boolean;
   resolvedLocation: 'global' | 'america' | 'mena' | 'eu' | 'asia' | 'latam' | 'africa' | 'oceania';

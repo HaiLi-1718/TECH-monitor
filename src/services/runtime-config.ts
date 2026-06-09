@@ -147,7 +147,7 @@ export const RUNTIME_FEATURES: RuntimeFeatureDefinition[] = [
     id: 'aiLlmGeneric',
     name: 'Custom LLM (LLM_API_URL)',
     description:
-      'OpenAI-compatible chat/completions via LLM_API_URL + LLM_API_KEY + LLM_MODEL. Used as a summarization fallback after OpenRouter.',
+      'OpenAI-compatible chat/completions via LLM_API_URL + LLM_API_KEY + LLM_MODEL (e.g. DeepSeek). Tried first for summarization when configured.',
     requiredSecrets: ['LLM_API_URL', 'LLM_API_KEY'],
     fallback: 'Disabled when LLM_API_URL or LLM_API_KEY is missing.',
   },

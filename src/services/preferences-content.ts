@@ -9,8 +9,24 @@ import { getFontFamily, setFontFamily, type FontFamily } from '@/services/font-s
 import { escapeHtml } from '@/utils/sanitize';
 import { trackLanguageChange } from '@/services/analytics';
 import { exportSettings, importSettings, type ImportResult } from '@/utils/settings-persistence';
-
-const DESKTOP_RELEASES_URL = 'https://github.com/koala73/worldmonitor/releases';
+import {
+  clearNewsArchive,
+  downloadNewsArchiveExport,
+  getNewsArchiveStats,
+  isFileSystemAccessSupported,
+} from '@/services/news-archive';
+import {
+  AUTO_EXPORT_INTERVAL_OPTIONS,
+  chooseAutoExportDirectory,
+  getAutoExportDirLabel,
+  getAutoExportIntervalMinutes,
+  getAutoExportLastRun,
+  isAutoExportEnabled,
+  restartNewsArchiveAutoExportScheduler,
+  runAutoExportOnce,
+  setAutoExportEnabled,
+  setAutoExportIntervalMinutes,
+} from '@/services/news-archive-auto-export';
 
 export interface PreferencesHost {
   isDesktopApp: boolean;
@@ -20,6 +36,41 @@ export interface PreferencesHost {
 export interface PreferencesResult {
   html: string;
   attach: (container: HTMLElement) => () => void;
+}
+
+async function refreshAutoExportStatus(container: HTMLElement): Promise<void> {
+  const el = container.querySelector('#usAutoExportStatus');
+  if (!el) return;
+  if (!isFileSystemAccessSupported()) {
+    el.textContent = t('components.insights.newsAutoExportUnsupported');
+    return;
+  }
+  const dir = getAutoExportDirLabel();
+  const last = getAutoExportLastRun();
+  const parts: string[] = [];
+  if (dir) parts.push(t('components.insights.newsAutoExportDir', { dir: escapeHtml(dir) }));
+  if (last.at && last.fileName) {
+    parts.push(t('components.insights.newsAutoExportLastOk', {
+      file: escapeHtml(last.fileName),
+      count: String(last.count),
+    }));
+  } else if (last.at) {
+    parts.push(t('components.insights.newsAutoExportLastEmpty'));
+  }
+  el.innerHTML = parts.join('<br>') || t('components.insights.newsAutoExportNotConfigured');
+}
+
+async function refreshNewsArchiveStats(container: HTMLElement): Promise<void> {
+  const el = container.querySelector('#usNewsArchiveStats');
+  if (!el) return;
+  try {
+    const stats = await getNewsArchiveStats();
+    el.textContent = stats.total > 0
+      ? t('components.insights.newsArchiveStats', { count: String(stats.total) })
+      : t('components.insights.newsArchiveStatsEmpty');
+  } catch {
+    el.textContent = '';
+  }
 }
 
 function toggleRowHtml(id: string, label: string, desc: string, checked: boolean): string {
@@ -185,16 +236,10 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
     html += toggleRowHtml('us-cloud', t('components.insights.aiFlowCloudLabel'), t('components.insights.aiFlowCloudDesc'), settings.cloudLlm);
     html += toggleRowHtml('us-browser', t('components.insights.aiFlowBrowserLabel'), t('components.insights.aiFlowBrowserDesc'), settings.browserModel);
     html += `<div class="ai-flow-toggle-warn" style="display:${settings.browserModel ? 'block' : 'none'}">${t('components.insights.aiFlowBrowserWarn')}</div>`;
-    html += `
-      <div class="ai-flow-cta">
-        <div class="ai-flow-cta-title">${t('components.insights.aiFlowOllamaCta')}</div>
-        <div class="ai-flow-cta-desc">${t('components.insights.aiFlowOllamaCtaDesc')}</div>
-        <a href="${DESKTOP_RELEASES_URL}" target="_blank" rel="noopener noreferrer" class="ai-flow-cta-link">${t('components.insights.aiFlowDownloadDesktop')}</a>
-      </div>
-    `;
   }
 
   html += toggleRowHtml('us-headline-memory', t('components.insights.headlineMemoryLabel'), t('components.insights.headlineMemoryDesc'), settings.headlineMemory);
+  html += toggleRowHtml('us-news-archive', t('components.insights.newsArchiveLabel'), t('components.insights.newsArchiveDesc'), settings.newsArchive);
 
   html += `</div></details>`;
 
@@ -243,12 +288,32 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
       <button type="button" class="settings-btn settings-btn-secondary" id="usImportBtn">${t('components.settings.importSettings')}</button>
       <input type="file" id="usImportInput" accept=".json" class="us-hidden-input" />
     </div>
+    <div class="ai-flow-toggle-desc" id="usNewsArchiveStats" style="margin:8px 0 4px"></div>
+    <div class="us-data-mgmt">
+      <button type="button" class="settings-btn settings-btn-secondary" id="usNewsArchiveExportBtn">${t('components.insights.newsArchiveExport')}</button>
+      <button type="button" class="settings-btn settings-btn-secondary" id="usNewsArchiveClearBtn">${t('components.insights.newsArchiveClear')}</button>
+    </div>
+    <div class="ai-flow-toggle-desc" style="margin:12px 0 6px;font-weight:600">${t('components.insights.newsAutoExportTitle')}</div>
+    <div class="ai-flow-toggle-desc" style="margin:0 0 8px">${t('components.insights.newsAutoExportDesc')}</div>
+    ${toggleRowHtml('us-auto-export', t('components.insights.newsAutoExportLabel'), t('components.insights.newsAutoExportHint'), isAutoExportEnabled())}
+    <div class="ai-flow-toggle-row">
+      <div class="ai-flow-toggle-label-wrap">
+        <div class="ai-flow-toggle-label">${t('components.insights.newsAutoExportIntervalLabel')}</div>
+      </div>
+    </div>
+    <select class="unified-settings-select" id="us-auto-export-interval">
+      ${AUTO_EXPORT_INTERVAL_OPTIONS.map((opt) => {
+        const selected = opt.value === getAutoExportIntervalMinutes() ? ' selected' : '';
+        return `<option value="${opt.value}"${selected}>${escapeHtml(t(`components.insights.newsAutoExportInterval.${opt.labelKey}`))}</option>`;
+      }).join('')}
+    </select>
+    <div class="us-data-mgmt" style="margin-top:8px">
+      <button type="button" class="settings-btn settings-btn-secondary" id="usAutoExportPickDirBtn">${t('components.insights.newsAutoExportPickDir')}</button>
+      <button type="button" class="settings-btn settings-btn-secondary" id="usAutoExportRunNowBtn">${t('components.insights.newsAutoExportRunNow')}</button>
+    </div>
+    <div class="ai-flow-toggle-desc" id="usAutoExportStatus" style="margin:8px 0 4px"></div>
     <div class="us-data-mgmt-toast" id="usDataMgmtToast"></div>
   `;
-  html += `<a href="https://github.com/koala73/worldmonitor/discussions/94" target="_blank" rel="noopener noreferrer" class="us-discussion-link">
-    <span class="us-discussion-dot"></span>
-    <span>${t('components.community.joinDiscussion')}</span>
-  </a>`;
   html += `</div></details>`;
 
   // AI status footer (web-only)
@@ -277,6 +342,11 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
           return;
         }
 
+        if (target.id === 'us-auto-export-interval') {
+          setAutoExportIntervalMinutes(Number(target.value));
+          restartNewsArchiveAutoExportScheduler();
+          return;
+        }
         if (target.id === 'us-stream-quality') {
           setStreamQuality(target.value as StreamQuality);
           return;
@@ -328,13 +398,68 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
           setAiFlowSetting('mapNewsFlash', target.checked);
         } else if (target.id === 'us-headline-memory') {
           setAiFlowSetting('headlineMemory', target.checked);
+        } else if (target.id === 'us-news-archive') {
+          setAiFlowSetting('newsArchive', target.checked);
+          refreshNewsArchiveStats(container);
+        } else if (target.id === 'us-auto-export') {
+          setAutoExportEnabled(target.checked);
+          restartNewsArchiveAutoExportScheduler();
+          refreshAutoExportStatus(container);
         } else if (target.id === 'us-badge-anim') {
           setAiFlowSetting('badgeAnimation', target.checked);
         }
       }, { signal });
 
+      void refreshNewsArchiveStats(container);
+      void refreshAutoExportStatus(container);
+
       container.addEventListener('click', (e) => {
         const target = e.target as HTMLElement;
+        if (target.closest('#usAutoExportPickDirBtn')) {
+          void chooseAutoExportDirectory()
+            .then((name) => {
+              if (!name) return;
+              showToast(container, t('components.insights.newsAutoExportDirSaved', { dir: name }), true);
+              refreshAutoExportStatus(container);
+            })
+            .catch(() => showToast(container, t('components.insights.newsAutoExportFailed'), false));
+          return;
+        }
+        if (target.closest('#usAutoExportRunNowBtn')) {
+          void runAutoExportOnce().then((result) => {
+            if (result.message === 'EXPORTED') {
+              showToast(container, t('components.insights.newsAutoExportRunOk'), true);
+            } else if (result.message === 'SKIPPED_EMPTY') {
+              showToast(container, t('components.insights.newsAutoExportRunEmpty'), true);
+            } else if (result.message === 'NO_DIRECTORY') {
+              showToast(container, t('components.insights.newsAutoExportNeedDir'), false);
+            } else if (result.message === 'PERMISSION_DENIED') {
+              showToast(container, t('components.insights.newsAutoExportPermission'), false);
+            } else if (result.message === 'UNSUPPORTED') {
+              showToast(container, t('components.insights.newsAutoExportUnsupported'), false);
+            } else {
+              showToast(container, t('components.insights.newsAutoExportFailed'), false);
+            }
+            refreshAutoExportStatus(container);
+          });
+          return;
+        }
+        if (target.closest('#usNewsArchiveExportBtn')) {
+          void downloadNewsArchiveExport()
+            .then(() => showToast(container, t('components.insights.newsArchiveExportSuccess'), true))
+            .catch(() => showToast(container, t('components.settings.exportFailed'), false));
+          return;
+        }
+        if (target.closest('#usNewsArchiveClearBtn')) {
+          if (!window.confirm(t('components.insights.newsArchiveClearConfirm'))) return;
+          void clearNewsArchive()
+            .then(() => {
+              refreshNewsArchiveStats(container);
+              showToast(container, t('components.insights.newsArchiveClearSuccess'), true);
+            })
+            .catch(() => showToast(container, t('components.settings.exportFailed'), false));
+          return;
+        }
         if (target.closest('#usExportBtn')) {
           try {
             exportSettings();

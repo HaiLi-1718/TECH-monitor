@@ -115,6 +115,7 @@ export function getProviderCredentials(provider: string): ProviderCredentials | 
           'X-Title': 'World Monitor',
         } : {}),
       },
+      extraBody: { thinking: { type: 'disabled' } },
     };
   }
 
@@ -141,7 +142,8 @@ export function stripThinkingTags(text: string): string {
   return s;
 }
 
-const PROVIDER_CHAIN = ['ollama', 'groq', 'openrouter', 'generic'] as const;
+// Prefer generic (DeepSeek / LLM_API_URL) before Groq/OpenRouter; missing keys are skipped in-loop.
+const PROVIDER_CHAIN = ['generic', 'ollama', 'groq', 'openrouter'] as const;
 
 export interface LlmCallOptions {
   messages: Array<{ role: string; content: string }>;

@@ -7,6 +7,7 @@ import { deletePersistentCache } from '@/services/persistent-cache';
 import { getCurrentLanguage, t } from '@/services/i18n';
 import { isDesktopRuntime } from '@/services/runtime';
 import { getAiFlowSettings, isAnyAiProviderEnabled, subscribeAiFlowChange } from '@/services/ai-flow-settings';
+import { isFeatureAvailable } from '@/services/runtime-config';
 import { fetchRankedTechInsights, prepareTechInsightFeed } from '@/services/tech-insights-llm';
 import type { ClusteredEvent, NewsItem } from '@/types';
 
@@ -158,15 +159,52 @@ export class InsightsPanel extends Panel {
     this.setProgress(1, totalSteps, t('components.insights.generatingBrief'));
 
     const aiFlow = isDesktopRuntime() ? { cloudLlm: true, browserModel: true } : getAiFlowSettings();
+    const canUseServerLlm = isDesktopRuntime()
+      ? true
+      : (aiFlow.cloudLlm || isFeatureAvailable('aiLlmGeneric'));
     const summarizeOpts: SummarizeOptions = {
-      skipCloudProviders: !aiFlow.cloudLlm,
+      skipCloudProviders: !canUseServerLlm,
       skipBrowserFallback: !aiFlow.browserModel,
     };
-    const hasAi = isDesktopRuntime() || isAnyAiProviderEnabled();
+    const hasAi = isDesktopRuntime() || isAnyAiProviderEnabled() || isFeatureAvailable('aiLlmGeneric');
     const lang = getCurrentLanguage() || 'en';
 
-    // 1) Structured multi-headline ranking (needs cloud LLM + JSON mode on server)
-    if (hasAi && aiFlow.cloudLlm) {
+    const titles = feed.slice(0, 8).map((n) => (n.title || '').trim()).filter(Boolean);
+
+    // 1) Brief-mode summary (DeepSeek / LLM_API_URL — prose-friendly, same as news panel ✨)
+    if (hasAi && canUseServerLlm && titles.length >= 1) {
+      this.setProgress(1, totalSteps, t('components.insights.generatingBrief'));
+      const result = await generateSummary(
+        titles,
+        (_step, _total, msg) => {
+          this.setProgress(1, totalSteps, msg);
+        },
+        '',
+        lang,
+        summarizeOpts,
+      );
+      if (this.updateGeneration !== thisGeneration) return;
+      if (result?.summary) {
+        const picks = feed.slice(0, 12);
+        const note =
+          result.provider === 'generic'
+            ? 'Summary from your configured LLM (e.g. DeepSeek). Open links to read originals.'
+            : result.provider === 'browser'
+              ? 'Local model summary from headlines; open links to verify details.'
+              : result.provider === 'cache'
+                ? 'Cached summary from recent headlines; open links to read originals.'
+                : 'Model-generated summary from current headlines. Open links to read originals.';
+        this.techInsightsCache = { sig, brief: result.summary, picks, verificationNote: note };
+        this.techInsightsCooldownUntil = Date.now() + InsightsPanel.BRIEF_COOLDOWN_MS;
+        this.setDataBadge('live');
+        this.renderTechLlmInsights(result.summary, picks, note);
+        return;
+      }
+    }
+
+    // 2) Structured JSON ranking (optional; needs model to follow JSON contract)
+    if (hasAi && canUseServerLlm) {
+      this.setProgress(2, totalSteps, t('components.insights.generatingBrief'));
       const ranked = await fetchRankedTechInsights(recentNews, { skipCloudProviders: false });
       if (this.updateGeneration !== thisGeneration) return;
       if (ranked && ranked.picks.length > 0) {
@@ -176,38 +214,6 @@ export class InsightsPanel extends Panel {
         this.setDataBadge('live');
         this.renderTechLlmInsights(ranked.brief, ranked.picks, note);
         return;
-      }
-    }
-
-    // 2) Same pipeline as geopolitical "world brief": brief-mode summary + feed links (browser T5 when cloud off)
-    if (hasAi) {
-      this.setProgress(2, totalSteps, t('components.insights.generatingBrief'));
-      const titles = feed.slice(0, 8).map((n) => (n.title || '').trim()).filter(Boolean);
-      if (titles.length >= 2) {
-        const result = await generateSummary(
-          titles,
-          (_step, _total, msg) => {
-            this.setProgress(2, totalSteps, msg);
-          },
-          '',
-          lang,
-          summarizeOpts,
-        );
-        if (this.updateGeneration !== thisGeneration) return;
-        if (result?.summary) {
-          const picks = feed.slice(0, 12);
-          const note =
-            result.provider === 'browser'
-              ? 'Local model summary from headlines; open links to verify details.'
-              : result.provider === 'cache'
-                ? 'Cached summary from recent headlines; open links to read originals.'
-                : 'Model-generated summary from current headlines. Open links to read originals.';
-          this.techInsightsCache = { sig, brief: result.summary, picks, verificationNote: note };
-          this.techInsightsCooldownUntil = Date.now() + InsightsPanel.BRIEF_COOLDOWN_MS;
-          this.setDataBadge('live');
-          this.renderTechLlmInsights(result.summary, picks, note);
-          return;
-        }
       }
     }
 

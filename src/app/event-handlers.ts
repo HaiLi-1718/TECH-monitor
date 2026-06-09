@@ -1,7 +1,8 @@
 import type { AppContext, AppModule } from '@/app/app-context';
 import type { PanelConfig, MapLayers } from '@/types';
 import type { MapView } from '@/components';
-import type { ClusteredEvent } from '@/types';
+import type { ClusteredEvent, NewsItem } from '@/types';
+import { getSourcePanelId } from '@/config/feeds';
 import type { DashboardSnapshot } from '@/services/storage';
 import {
   PlaybackControl,
@@ -857,6 +858,7 @@ export class EventHandlerManager implements AppModule {
         this.restoreSnapshot(snapshot);
       } else {
         this.ctx.isPlaybackMode = false;
+        this.ctx.playbackSnapshotTime = null;
         this.callbacks.loadAllData();
       }
     });
@@ -893,11 +895,10 @@ export class EventHandlerManager implements AppModule {
   }
 
   restoreSnapshot(snapshot: DashboardSnapshot): void {
-    for (const panel of Object.values(this.ctx.newsPanels)) {
-      panel.showLoading();
-    }
+    const snapshotTime = snapshot.timestamp;
+    this.ctx.playbackSnapshotTime = snapshotTime;
+    const events = (snapshot.events as ClusteredEvent[]).map((raw) => this.reviveClusteredEvent(raw));
 
-    const events = snapshot.events as ClusteredEvent[];
     this.ctx.latestClusters = events;
 
     const predictions = snapshot.predictions.map((p, i) => ({
@@ -911,6 +912,60 @@ export class EventHandlerManager implements AppModule {
     this.ctx.latestPredictions = predictions;
 
     this.ctx.map?.setHotspotLevels(snapshot.hotspotLevels);
+
+    for (const [category, panel] of Object.entries(this.ctx.newsPanels)) {
+      const panelClusters = events.filter((cluster) => {
+        const updated = cluster.lastUpdated.getTime();
+        if (!Number.isFinite(updated) || updated > snapshotTime) return false;
+        return getSourcePanelId(cluster.primarySource) === category;
+      });
+
+      if (panelClusters.length > 0) {
+        panel.renderClusters(panelClusters);
+        continue;
+      }
+
+      const seen = new Set<string>();
+      const items: NewsItem[] = [];
+      for (const cluster of events) {
+        for (const item of cluster.allItems ?? []) {
+          const pub = item.pubDate instanceof Date ? item.pubDate.getTime() : new Date(item.pubDate).getTime();
+          if (!Number.isFinite(pub) || pub > snapshotTime) continue;
+          if (getSourcePanelId(item.source) !== category) continue;
+          const key = item.link?.trim() || item.title;
+          if (!key || seen.has(key)) continue;
+          seen.add(key);
+          items.push({
+            ...item,
+            pubDate: item.pubDate instanceof Date ? item.pubDate : new Date(item.pubDate),
+          });
+        }
+      }
+
+      items.sort((a, b) => {
+        const ta = a.pubDate instanceof Date ? a.pubDate.getTime() : new Date(a.pubDate).getTime();
+        const tb = b.pubDate instanceof Date ? b.pubDate.getTime() : new Date(b.pubDate).getTime();
+        return tb - ta;
+      });
+
+      if (items.length > 0) {
+        panel.renderNews(items);
+      } else {
+        panel.renderFilteredEmpty(t('components.playback.noNewsAtTime'));
+      }
+    }
+  }
+
+  private reviveClusteredEvent(raw: ClusteredEvent): ClusteredEvent {
+    return {
+      ...raw,
+      firstSeen: new Date(raw.firstSeen),
+      lastUpdated: new Date(raw.lastUpdated),
+      allItems: (raw.allItems ?? []).map((item) => ({
+        ...item,
+        pubDate: item.pubDate instanceof Date ? item.pubDate : new Date(item.pubDate),
+      })),
+    };
   }
 
   setupMapLayerHandlers(): void {

@@ -7,6 +7,8 @@ export * from './clustering';
 export * from './related-assets';
 export * from './velocity';
 export * from './storage';
+export * from './news-archive';
+export * from './news-archive-auto-export';
 export * from './correlation';
 export * from './weather';
 export * from './economic';

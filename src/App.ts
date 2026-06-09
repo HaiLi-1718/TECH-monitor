@@ -13,6 +13,11 @@ import type { MapVariant } from '@/config/map-layer-definitions';
 import { initDB, cleanOldSnapshots, isAisConfigured, initAisStream, isOutagesConfigured, disconnectAisStream } from '@/services';
 import { mlWorker } from '@/services/ml-worker';
 import { getAiFlowSettings, subscribeAiFlowChange, isHeadlineMemoryEnabled } from '@/services/ai-flow-settings';
+import {
+  startNewsArchiveAutoExportScheduler,
+  subscribeAutoExportChange,
+  restartNewsArchiveAutoExportScheduler,
+} from '@/services/news-archive-auto-export';
 import { startLearning } from '@/services/country-instability';
 import { loadFromStorage, parseMapUrlState, saveToStorage, isMobileDevice } from '@/utils';
 import type { ParsedMapUrlState } from '@/utils';
@@ -34,7 +39,6 @@ import { PanelLayoutManager } from '@/app/panel-layout';
 import { DataLoaderManager } from '@/app/data-loader';
 import { EventHandlerManager } from '@/app/event-handlers';
 import { resolveUserRegion, resolvePreciseUserCoordinates, type PreciseCoordinates } from '@/utils/user-location';
-import { showProBanner } from '@/components/ProBanner';
 import { MONITOR_COLORS } from '@/config';
 import { TECH_MONITORING_COMPANIES } from '@/config/tech-monitoring-companies';
 
@@ -381,6 +385,7 @@ export class App {
       happyAllItems: [],
       isDestroyed: false,
       isPlaybackMode: false,
+      playbackSnapshotTime: null,
       isIdle: false,
       initialLoadComplete: false,
       resolvedLocation: 'global',
@@ -507,7 +512,6 @@ export class App {
 
     // Phase 1: Layout (creates map + panels — they'll find hydrated data)
     this.panelLayout.init();
-    showProBanner(this.state.container);
 
     const mobileGeoCoords = await geoCoordsPromise;
     if (mobileGeoCoords && this.state.map) {
@@ -587,6 +591,8 @@ export class App {
     ]);
 
     startLearning();
+    startNewsArchiveAutoExportScheduler();
+    subscribeAutoExportChange(() => restartNewsArchiveAutoExportScheduler());
 
     // Hide unconfigured layers after first data load
     if (!isAisConfigured()) {

@@ -10,6 +10,7 @@ const STORAGE_KEY_BROWSER_MODEL = 'wm-ai-flow-browser-model';
 const STORAGE_KEY_CLOUD_LLM = 'wm-ai-flow-cloud-llm';
 const STORAGE_KEY_MAP_NEWS_FLASH = 'wm-map-news-flash';
 const STORAGE_KEY_HEADLINE_MEMORY = 'wm-headline-memory';
+const STORAGE_KEY_NEWS_ARCHIVE = 'wm-news-archive';
 const STORAGE_KEY_BADGE_ANIMATION = 'wm-badge-animation';
 const STORAGE_KEY_STREAM_QUALITY = 'wm-stream-quality';
 const EVENT_NAME = 'ai-flow-changed';
@@ -20,6 +21,7 @@ export interface AiFlowSettings {
   cloudLlm: boolean;
   mapNewsFlash: boolean;
   headlineMemory: boolean;
+  newsArchive: boolean;
   badgeAnimation: boolean;
 }
 
@@ -46,6 +48,7 @@ const STORAGE_KEY_MAP: Record<keyof AiFlowSettings, string> = {
   cloudLlm: STORAGE_KEY_CLOUD_LLM,
   mapNewsFlash: STORAGE_KEY_MAP_NEWS_FLASH,
   headlineMemory: STORAGE_KEY_HEADLINE_MEMORY,
+  newsArchive: STORAGE_KEY_NEWS_ARCHIVE,
   badgeAnimation: STORAGE_KEY_BADGE_ANIMATION,
 };
 
@@ -54,6 +57,7 @@ const DEFAULTS: AiFlowSettings = {
   cloudLlm: true,
   mapNewsFlash: true,
   headlineMemory: false,
+  newsArchive: true,
   badgeAnimation: false,
 };
 
@@ -63,12 +67,17 @@ export function getAiFlowSettings(): AiFlowSettings {
     cloudLlm: readBool(STORAGE_KEY_CLOUD_LLM, DEFAULTS.cloudLlm),
     mapNewsFlash: readBool(STORAGE_KEY_MAP_NEWS_FLASH, DEFAULTS.mapNewsFlash),
     headlineMemory: readBool(STORAGE_KEY_HEADLINE_MEMORY, DEFAULTS.headlineMemory),
+    newsArchive: readBool(STORAGE_KEY_NEWS_ARCHIVE, DEFAULTS.newsArchive),
     badgeAnimation: readBool(STORAGE_KEY_BADGE_ANIMATION, DEFAULTS.badgeAnimation),
   };
 }
 
 export function isHeadlineMemoryEnabled(): boolean {
   return readBool(STORAGE_KEY_HEADLINE_MEMORY, DEFAULTS.headlineMemory);
+}
+
+export function isNewsArchiveEnabled(): boolean {
+  return readBool(STORAGE_KEY_NEWS_ARCHIVE, DEFAULTS.newsArchive);
 }
 
 export function setAiFlowSetting(key: keyof AiFlowSettings, value: boolean): void {

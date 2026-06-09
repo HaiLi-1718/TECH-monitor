@@ -115,6 +115,7 @@ import { fetchPositiveGeoEvents, geocodePositiveNewsItems, type PositiveGeoEvent
 import type { HappyContentCategory } from '@/services/positive-classifier';
 import { fetchKindnessData } from '@/services/kindness-data';
 import { getPersistentCache, setPersistentCache } from '@/services/persistent-cache';
+import { archiveNewsItems } from '@/services/news-archive';
 import {
   buildDailyMarketBrief,
   cacheDailyMarketBrief,
@@ -654,6 +655,9 @@ export class DataLoaderManager implements AppModule {
   }
 
   renderNewsForCategory(category: string, items: NewsItem[]): void {
+    if (items.length > 0) {
+      void archiveNewsItems(items, category).catch(() => {});
+    }
     this.ctx.newsByCategory[category] = items;
     const panel = this.ctx.newsPanels[category];
     if (!panel) return;

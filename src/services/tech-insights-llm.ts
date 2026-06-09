@@ -6,11 +6,12 @@ import { isFeatureAvailable, type RuntimeFeatureId } from '@/services/runtime-co
 
 const newsClient = new NewsServiceClient(getRpcBaseUrl(), { fetch: (...args) => globalThis.fetch(...args) });
 
+// generic = DeepSeek / any OpenAI-compatible LLM_API_URL — try first when only that is configured
 const PROVIDERS: { provider: 'ollama' | 'groq' | 'openrouter' | 'generic'; feature: RuntimeFeatureId }[] = [
+  { provider: 'generic', feature: 'aiLlmGeneric' },
   { provider: 'ollama', feature: 'aiOllama' },
   { provider: 'groq', feature: 'aiGroq' },
   { provider: 'openrouter', feature: 'aiOpenRouter' },
-  { provider: 'generic', feature: 'aiLlmGeneric' },
 ];
 
 function buildTechInsightHeadlines(feed: NewsItem[]): string[] {
@@ -75,6 +76,10 @@ export async function fetchRankedTechInsights(
       try {
         parsed = JSON.parse(raw);
       } catch {
+        // DeepSeek and similar models often return prose instead of strict JSON
+        if (raw.length >= 20) {
+          return { brief: raw.slice(0, 800), picks: feed.slice(0, Math.min(3, feed.length)) };
+        }
         continue;
       }
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) continue;

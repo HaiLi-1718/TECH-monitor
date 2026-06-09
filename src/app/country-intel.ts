@@ -31,6 +31,7 @@ import { IntelligenceServiceClient } from '@/generated/client/worldmonitor/intel
 import { showMapContextMenu } from '@/components/MapContextMenu';
 import { BETA_MODE } from '@/config/beta';
 import { MILITARY_BASES } from '@/config';
+import { IS_TECH_LIKE_VARIANT } from '@/config/variant';
 import { mlWorker } from '@/services/ml-worker';
 import { isHeadlineMemoryEnabled } from '@/services/ai-flow-settings';
 import { t, getCurrentLanguage } from '@/services/i18n';
@@ -183,7 +184,9 @@ export class CountryIntelManager implements AppModule {
       });
     }
     this.ctx.countryBriefPage.updateSignalDetails?.(this.buildSignalDetails(code));
-    this.ctx.countryBriefPage.updateMilitaryActivity?.(this.buildMilitarySummary(code, country));
+    if (!IS_TECH_LIKE_VARIANT) {
+      this.ctx.countryBriefPage.updateMilitaryActivity?.(this.buildMilitarySummary(code, country));
+    }
     this.ctx.countryBriefPage.updateEconomicIndicators?.(this.buildEconomicIndicators(code, score, null));
 
     const marketClient = new MarketServiceClient(getRpcBaseUrl(), { fetch: (...args: Parameters<typeof globalThis.fetch>) => globalThis.fetch(...args) });
@@ -213,22 +216,7 @@ export class CountryIntelManager implements AppModule {
         if (this.ctx.countryBriefPage?.getCode() === code) this.ctx.countryBriefPage.updateMarkets([]);
       });
 
-    const searchTerms = CountryIntelManager.getCountrySearchTerms(country, code);
-    const otherCountryTerms = CountryIntelManager.getOtherCountryTerms(code);
-    const matchingNews = this.ctx.allNews.filter((n) => {
-      const t = n.title.toLowerCase();
-      return searchTerms.some((term) => t.includes(term));
-    });
-    const filteredNews = matchingNews.filter((n) => {
-      const t = n.title.toLowerCase();
-      const ourPos = CountryIntelManager.firstMentionPosition(t, searchTerms);
-      const otherPos = CountryIntelManager.firstMentionPosition(t, otherCountryTerms);
-      return ourPos !== Infinity && (otherPos === Infinity || ourPos <= otherPos);
-    }).sort((a, b) => {
-      const severityDelta = this.newsSeverityRank(b) - this.newsSeverityRank(a);
-      if (severityDelta !== 0) return severityDelta;
-      return new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime();
-    });
+    const filteredNews = this.collectCountryNews(country, code);
     this.ctx.countryBriefPage.updateNews(filteredNews.slice(0, 10));
 
     this.ctx.countryBriefPage.updateInfrastructure(code);
@@ -466,76 +454,94 @@ export class CountryIntelManager implements AppModule {
     const inCountry = (lat: number, lon: number) => hasGeoShape && this.isInCountry(lat, lon, code);
     const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
-    if (this.ctx.intelligenceCache.protests?.events) {
-      for (const e of this.ctx.intelligenceCache.protests.events) {
-        if (e.country?.toLowerCase() === countryLower || inCountry(e.lat, e.lon)) {
-          events.push({
-            timestamp: new Date(e.time).getTime(),
-            lane: 'protest',
-            label: e.title || `${e.eventType} in ${e.city || e.country}`,
-            severity: e.severity === 'high' ? 'high' : e.severity === 'medium' ? 'medium' : 'low',
-          });
-        }
-      }
-    }
-
-    if (this.ctx.intelligenceCache.earthquakes) {
-      for (const eq of this.ctx.intelligenceCache.earthquakes) {
-        if (inCountry(eq.location?.latitude ?? 0, eq.location?.longitude ?? 0) || eq.place?.toLowerCase().includes(countryLower)) {
-          events.push({
-            timestamp: eq.occurredAt,
-            lane: 'natural',
-            label: `M${eq.magnitude.toFixed(1)} ${eq.place}`,
-            severity: eq.magnitude >= 6 ? 'critical' : eq.magnitude >= 5 ? 'high' : eq.magnitude >= 4 ? 'medium' : 'low',
-          });
-        }
-      }
-    }
-
-    if (this.ctx.intelligenceCache.military) {
-      for (const f of this.ctx.intelligenceCache.military.flights) {
-        if (hasGeoShape ? this.isInCountry(f.lat, f.lon, code) : f.operatorCountry?.toUpperCase() === code) {
-          events.push({
-            timestamp: new Date(f.lastSeen).getTime(),
-            lane: 'military',
-            label: `${f.callsign} (${f.aircraftModel || f.aircraftType})`,
-            severity: f.isInteresting ? 'high' : 'low',
-          });
-        }
-      }
-      for (const v of this.ctx.intelligenceCache.military.vessels) {
-        if (hasGeoShape ? this.isInCountry(v.lat, v.lon, code) : v.operatorCountry?.toUpperCase() === code) {
-          events.push({
-            timestamp: new Date(v.lastAisUpdate).getTime(),
-            lane: 'military',
-            label: `${v.name} (${v.vesselType})`,
-            severity: v.isDark ? 'high' : 'low',
-          });
-        }
-      }
-    }
-
-    const ciiData = getCountryData(code);
-    if (ciiData?.conflicts) {
-      for (const c of ciiData.conflicts) {
+    if (IS_TECH_LIKE_VARIANT) {
+      for (const item of this.collectCountryNews(country, code).slice(0, 15)) {
+        const ts = new Date(item.pubDate).getTime();
+        if (!Number.isFinite(ts)) continue;
+        const level = item.threat?.level;
+        const severity = level === 'critical' ? 'critical'
+          : level === 'high' ? 'high'
+            : level === 'medium' ? 'medium'
+              : 'low';
         events.push({
-          timestamp: new Date(c.time).getTime(),
-          lane: 'conflict',
-          label: `${c.eventType}: ${c.location || c.country}`,
-          severity: c.fatalities > 0 ? 'critical' : 'high',
+          timestamp: ts,
+          lane: 'natural',
+          label: item.title.slice(0, 100),
+          severity,
         });
       }
-    }
+    } else {
+      if (this.ctx.intelligenceCache.protests?.events) {
+        for (const e of this.ctx.intelligenceCache.protests.events) {
+          if (e.country?.toLowerCase() === countryLower || inCountry(e.lat, e.lon)) {
+            events.push({
+              timestamp: new Date(e.time).getTime(),
+              lane: 'protest',
+              label: e.title || `${e.eventType} in ${e.city || e.country}`,
+              severity: e.severity === 'high' ? 'high' : e.severity === 'medium' ? 'medium' : 'low',
+            });
+          }
+        }
+      }
 
-    for (const e of this.getCountryStrikes(code, hasGeoShape)) {
-      const rawTs = Number(e.timestamp) || 0;
-      const ts = rawTs < 1e12 ? rawTs * 1000 : rawTs;
-      events.push({
-        timestamp: ts,
-        lane: 'conflict',
-        label: e.title || `Strike: ${e.locationName}`,
-        severity: (e.severity.toLowerCase() === 'high' || e.severity.toLowerCase() === 'critical') ? 'critical' : 'high',
-      });
+      if (this.ctx.intelligenceCache.earthquakes) {
+        for (const eq of this.ctx.intelligenceCache.earthquakes) {
+          if (inCountry(eq.location?.latitude ?? 0, eq.location?.longitude ?? 0) || eq.place?.toLowerCase().includes(countryLower)) {
+            events.push({
+              timestamp: eq.occurredAt,
+              lane: 'natural',
+              label: `M${eq.magnitude.toFixed(1)} ${eq.place}`,
+              severity: eq.magnitude >= 6 ? 'critical' : eq.magnitude >= 5 ? 'high' : eq.magnitude >= 4 ? 'medium' : 'low',
+            });
+          }
+        }
+      }
+
+      if (this.ctx.intelligenceCache.military) {
+        for (const f of this.ctx.intelligenceCache.military.flights) {
+          if (hasGeoShape ? this.isInCountry(f.lat, f.lon, code) : f.operatorCountry?.toUpperCase() === code) {
+            events.push({
+              timestamp: new Date(f.lastSeen).getTime(),
+              lane: 'military',
+              label: `${f.callsign} (${f.aircraftModel || f.aircraftType})`,
+              severity: f.isInteresting ? 'high' : 'low',
+            });
+          }
+        }
+        for (const v of this.ctx.intelligenceCache.military.vessels) {
+          if (hasGeoShape ? this.isInCountry(v.lat, v.lon, code) : v.operatorCountry?.toUpperCase() === code) {
+            events.push({
+              timestamp: new Date(v.lastAisUpdate).getTime(),
+              lane: 'military',
+              label: `${v.name} (${v.vesselType})`,
+              severity: v.isDark ? 'high' : 'low',
+            });
+          }
+        }
+      }
+
+      const ciiData = getCountryData(code);
+      if (ciiData?.conflicts) {
+        for (const c of ciiData.conflicts) {
+          events.push({
+            timestamp: new Date(c.time).getTime(),
+            lane: 'conflict',
+            label: `${c.eventType}: ${c.location || c.country}`,
+            severity: c.fatalities > 0 ? 'critical' : 'high',
+          });
+        }
+      }
+
+      for (const e of this.getCountryStrikes(code, hasGeoShape)) {
+        const rawTs = Number(e.timestamp) || 0;
+        const ts = rawTs < 1e12 ? rawTs * 1000 : rawTs;
+        events.push({
+          timestamp: ts,
+          lane: 'conflict',
+          label: e.title || `Strike: ${e.locationName}`,
+          severity: (e.severity.toLowerCase() === 'high' || e.severity.toLowerCase() === 'critical') ? 'critical' : 'high',
+        });
+      }
     }
 
     this.ctx.countryTimeline = new CountryTimeline(mount);
@@ -920,7 +926,7 @@ export class CountryIntelManager implements AppModule {
     IR: ['iran', 'iranian', 'tehran', 'persian', 'irgc', 'khamenei'],
     RU: ['russia', 'russian', 'moscow', 'kremlin', 'putin', 'ukraine war'],
     UA: ['ukraine', 'ukrainian', 'kyiv', 'zelensky', 'zelenskyy'],
-    CN: ['china', 'chinese', 'beijing', 'taiwan strait', 'south china sea', 'xi jinping'],
+    CN: ['china', 'chinese', 'beijing', 'shanghai', 'shenzhen', '中国', '中华', '北京', '上海', '深圳', '工信部', '国产芯片', '华为', 'taiwan strait', 'south china sea', 'xi jinping'],
     TW: ['taiwan', 'taiwanese', 'taipei'],
     KP: ['north korea', 'pyongyang', 'kim jong'],
     KR: ['south korea', 'seoul'],
@@ -983,6 +989,34 @@ export class CountryIntelManager implements AppModule {
     }
 
     return code;
+  }
+
+  private collectCountryNews(country: string, code: string): NewsItem[] {
+    const searchTerms = CountryIntelManager.getCountrySearchTerms(country, code);
+    const otherCountryTerms = CountryIntelManager.getOtherCountryTerms(code);
+    const pool: NewsItem[] = IS_TECH_LIKE_VARIANT
+      ? Object.values(this.ctx.newsByCategory).flat()
+      : [...this.ctx.allNews];
+    const deduped = new Map<string, NewsItem>();
+    for (const item of pool) {
+      const key = item.link?.trim() || item.title;
+      if (!key || deduped.has(key)) continue;
+      deduped.set(key, item);
+    }
+    const matchingNews = [...deduped.values()].filter((n) => {
+      const title = n.title.toLowerCase();
+      return searchTerms.some((term) => title.includes(term));
+    });
+    return matchingNews.filter((n) => {
+      const title = n.title.toLowerCase();
+      const ourPos = CountryIntelManager.firstMentionPosition(title, searchTerms);
+      const otherPos = CountryIntelManager.firstMentionPosition(title, otherCountryTerms);
+      return ourPos !== Infinity && (otherPos === Infinity || ourPos <= otherPos);
+    }).sort((a, b) => {
+      const severityDelta = this.newsSeverityRank(b) - this.newsSeverityRank(a);
+      if (severityDelta !== 0) return severityDelta;
+      return new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime();
+    });
   }
 
   static getCountrySearchTerms(country: string, code: string): string[] {

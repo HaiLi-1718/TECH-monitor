@@ -110,7 +110,7 @@ Rules:
       let llmResult = await callLlm({
         messages,
         temperature: 0.4,
-        maxTokens: 420,
+        maxTokens: 1000,
         timeoutMs: UPSTREAM_TIMEOUT_MS,
       });
 
@@ -122,7 +122,7 @@ Rules:
           provider: 'generic',
           stripThinkingTags: false,
           temperature: 0.4,
-          maxTokens: 420,
+          maxTokens: 1000,
           timeoutMs: UPSTREAM_TIMEOUT_MS,
           validate: (content) => content.trim().length >= 40,
         });
@@ -138,7 +138,7 @@ Rules:
           provider: getProviderCredentials('generic') ? 'generic' : undefined,
           stripThinkingTags: false,
           temperature: 0.4,
-          maxTokens: 320,
+          maxTokens: 1000,
           timeoutMs: UPSTREAM_TIMEOUT_MS,
           validate: (content) => content.trim().length >= 40,
         });
