@@ -14,6 +14,8 @@ import {
   downloadNewsArchiveExport,
   getNewsArchiveStats,
   isFileSystemAccessSupported,
+  type NewsExportDateBasis,
+  type NewsExportLayout,
 } from '@/services/news-archive';
 import {
   AUTO_EXPORT_INTERVAL_OPTIONS,
@@ -21,11 +23,15 @@ import {
   getAutoExportDirLabel,
   getAutoExportIntervalMinutes,
   getAutoExportLastRun,
+  getNewsExportDateBasis,
+  getNewsExportLayout,
   isAutoExportEnabled,
   restartNewsArchiveAutoExportScheduler,
   runAutoExportOnce,
   setAutoExportEnabled,
   setAutoExportIntervalMinutes,
+  setNewsExportDateBasis,
+  setNewsExportLayout,
 } from '@/services/news-archive-auto-export';
 
 export interface PreferencesHost {
@@ -49,11 +55,18 @@ async function refreshAutoExportStatus(container: HTMLElement): Promise<void> {
   const last = getAutoExportLastRun();
   const parts: string[] = [];
   if (dir) parts.push(t('components.insights.newsAutoExportDir', { dir: escapeHtml(dir) }));
-  if (last.at && last.fileName) {
-    parts.push(t('components.insights.newsAutoExportLastOk', {
-      file: escapeHtml(last.fileName),
-      count: String(last.count),
-    }));
+  if (last.at && last.count > 0) {
+    if (last.fileCount > 1) {
+      parts.push(t('components.insights.newsAutoExportLastOkMulti', {
+        count: String(last.count),
+        files: String(last.fileCount),
+      }));
+    } else {
+      parts.push(t('components.insights.newsAutoExportLastOk', {
+        file: escapeHtml(last.fileName),
+        count: String(last.count),
+      }));
+    }
   } else if (last.at) {
     parts.push(t('components.insights.newsAutoExportLastEmpty'));
   }
@@ -307,6 +320,36 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
         return `<option value="${opt.value}"${selected}>${escapeHtml(t(`components.insights.newsAutoExportInterval.${opt.labelKey}`))}</option>`;
       }).join('')}
     </select>
+    <div class="ai-flow-toggle-row">
+      <div class="ai-flow-toggle-label-wrap">
+        <div class="ai-flow-toggle-label">${t('components.insights.newsAutoExportLayoutLabel')}</div>
+        <div class="ai-flow-toggle-desc">${t('components.insights.newsAutoExportLayoutDesc')}</div>
+      </div>
+    </div>
+    <select class="unified-settings-select" id="us-auto-export-layout">
+      ${([
+        { value: 'category-date', labelKey: 'newsAutoExportLayoutByCategoryDate' },
+        { value: 'flat', labelKey: 'newsAutoExportLayoutFlat' },
+      ] as { value: NewsExportLayout; labelKey: string }[]).map((opt) => {
+        const selected = opt.value === getNewsExportLayout() ? ' selected' : '';
+        return `<option value="${opt.value}"${selected}>${escapeHtml(t(`components.insights.${opt.labelKey}`))}</option>`;
+      }).join('')}
+    </select>
+    <div class="ai-flow-toggle-row">
+      <div class="ai-flow-toggle-label-wrap">
+        <div class="ai-flow-toggle-label">${t('components.insights.newsAutoExportDateBasisLabel')}</div>
+        <div class="ai-flow-toggle-desc">${t('components.insights.newsAutoExportDateBasisDesc')}</div>
+      </div>
+    </div>
+    <select class="unified-settings-select" id="us-auto-export-date-basis">
+      ${([
+        { value: 'pubDate', labelKey: 'newsAutoExportDateBasisPubDate' },
+        { value: 'archivedAt', labelKey: 'newsAutoExportDateBasisArchivedAt' },
+      ] as { value: NewsExportDateBasis; labelKey: string }[]).map((opt) => {
+        const selected = opt.value === getNewsExportDateBasis() ? ' selected' : '';
+        return `<option value="${opt.value}"${selected}>${escapeHtml(t(`components.insights.${opt.labelKey}`))}</option>`;
+      }).join('')}
+    </select>
     <div class="us-data-mgmt" style="margin-top:8px">
       <button type="button" class="settings-btn settings-btn-secondary" id="usAutoExportPickDirBtn">${t('components.insights.newsAutoExportPickDir')}</button>
       <button type="button" class="settings-btn settings-btn-secondary" id="usAutoExportRunNowBtn">${t('components.insights.newsAutoExportRunNow')}</button>
@@ -345,6 +388,14 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
         if (target.id === 'us-auto-export-interval') {
           setAutoExportIntervalMinutes(Number(target.value));
           restartNewsArchiveAutoExportScheduler();
+          return;
+        }
+        if (target.id === 'us-auto-export-layout') {
+          setNewsExportLayout(target.value as NewsExportLayout);
+          return;
+        }
+        if (target.id === 'us-auto-export-date-basis') {
+          setNewsExportDateBasis(target.value as NewsExportDateBasis);
           return;
         }
         if (target.id === 'us-stream-quality') {
