@@ -572,6 +572,8 @@ const TECH_FEEDS: Record<string, Feed[]> = {
   ],
   security: [
     { name: '嘶吼安全', url: rss('https://www.4hou.com/feed'), lang: 'zh' },
+    { name: '安全客', url: rss('https://www.anquanke.com/rss'), lang: 'zh' },
+    { name: 'FreeBuf', url: rss('https://www.freebuf.com/feed'), lang: 'zh' },
     { name: 'InfoQ 中文', url: rss('https://www.infoq.cn/feed'), lang: 'zh' },
     { name: 'Krebs Security', url: rss('https://krebsonsecurity.com/feed/') },
     { name: 'The Hacker News', url: rss('https://feeds.feedburner.com/TheHackersNews') },

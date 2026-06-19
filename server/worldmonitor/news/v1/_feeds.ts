@@ -182,8 +182,15 @@ export const VARIANT_FEEDS: Record<string, Record<string, ServerFeed[]>> = {
       { name: 'Demo Day News', url: gn('("demo day" OR "YC batch" OR "accelerator batch") startup when:7d') },
     ],
     security: [
+      { name: '嘶吼安全', url: 'https://www.4hou.com/feed', lang: 'zh' },
+      { name: '安全客', url: 'https://www.anquanke.com/rss', lang: 'zh' },
+      { name: 'FreeBuf', url: 'https://www.freebuf.com/feed', lang: 'zh' },
+      { name: 'InfoQ 中文', url: 'https://www.infoq.cn/feed', lang: 'zh' },
       { name: 'Krebs Security', url: 'https://krebsonsecurity.com/feed/' },
+      { name: 'The Hacker News', url: 'https://feeds.feedburner.com/TheHackersNews' },
       { name: 'Dark Reading', url: 'https://www.darkreading.com/rss.xml' },
+      { name: 'Schneier', url: 'https://www.schneier.com/feed/' },
+      { name: 'CISA Advisories', url: 'https://www.cisa.gov/cybersecurity-advisories/all.xml' },
     ],
     policy: [
       { name: 'Politico Tech', url: 'https://rss.politico.com/technology.xml' },

@@ -228,8 +228,8 @@ export class DataLoaderManager implements AppModule {
   private readonly persistedDigestMaxAgeMs = 6 * 60 * 60 * 1000;
   private readonly perFeedFallbackCategoryFeedLimit = 3;
   private readonly perFeedFallbackBatchSize = 2;
-  /** Biopharma before startups so overlapping Google News URLs keep a pharma home panel. */
-  private readonly techLikeCrossCategoryPriority = ['policy', 'security', 'biopharma', 'startups', 'ai', 'tech'];
+  /** Security before policy so shared InfoQ headlines stay on the security panel. */
+  private readonly techLikeCrossCategoryPriority = ['security', 'policy', 'biopharma', 'startups', 'ai', 'tech'];
   private lastGoodDigest: ListFeedDigestResponse | null = null;
 
   constructor(ctx: AppContext, callbacks: DataLoaderCallbacks) {
@@ -802,7 +802,12 @@ export class DataLoaderManager implements AppModule {
       const wideCategoryLimit = category === 'biopharma' || category === 'ai'
         ? Math.max(12, this.perFeedFallbackCategoryFeedLimit)
         : this.perFeedFallbackCategoryFeedLimit;
-      const startupFallbackLimit = isStartupsCategory ? Math.max(8, this.perFeedFallbackCategoryFeedLimit) : wideCategoryLimit;
+      const securityFallbackLimit = category === 'security'
+        ? Math.max(7, this.perFeedFallbackCategoryFeedLimit)
+        : wideCategoryLimit;
+      const startupFallbackLimit = isStartupsCategory
+        ? Math.max(8, this.perFeedFallbackCategoryFeedLimit)
+        : securityFallbackLimit;
       const fallbackFeeds = this.selectLimitedFeeds(effectiveFeeds, startupFallbackLimit);
       if (fallbackFeeds.length < effectiveFeeds.length) {
         console.warn(`[News] Digest missing for "${category}", using limited per-feed fallback (${fallbackFeeds.length}/${effectiveFeeds.length} feeds)`);
