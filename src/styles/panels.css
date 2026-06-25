@@ -2118,11 +2118,9 @@
   border-top-color: var(--accent);
 }
 
-/* Hide drop zone completely on smaller screens (overridden by media query in main.css) */
-@media (max-width: 1599px) {
-  .map-bottom-grid {
-    display: none !important;
-  }
+/* Drop zone hidden — panels always below map, no gap */
+.map-bottom-grid {
+  display: none !important;
 }
 
 .map-bottom-grid .panel {
