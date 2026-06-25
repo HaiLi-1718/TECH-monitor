@@ -5,6 +5,8 @@ const DESKTOP_ORIGIN_PATTERNS = [
   /^asset:\/\/localhost$/,
 ];
 
+// Hard-coded trusted origins — mainly for cross-origin embeds and the official deployment.
+// Self-hosted deployments are covered automatically by the same-origin check below.
 const BROWSER_ORIGIN_PATTERNS = [
   /^https:\/\/(.*\.)?worldmonitor\.app$/,
   /^https:\/\/worldmonitor-[a-z0-9-]+-elie-[a-z0-9]+\.vercel\.app$/,
@@ -22,6 +24,17 @@ function isTrustedBrowserOrigin(origin) {
   return Boolean(origin) && BROWSER_ORIGIN_PATTERNS.some(p => p.test(origin));
 }
 
+function isSameOrigin(origin, req) {
+  if (!origin) return false;
+  try {
+    const originHost = new URL(origin).host;
+    const requestHost = req.headers.get('Host') || new URL(req.url).host;
+    return originHost === requestHost;
+  } catch {
+    return false;
+  }
+}
+
 function extractOriginFromReferer(referer) {
   if (!referer) return '';
   try {
@@ -34,8 +47,6 @@ function extractOriginFromReferer(referer) {
 export function validateApiKey(req, options = {}) {
   const forceKey = options.forceKey === true;
   const key = req.headers.get('X-WorldMonitor-Key');
-  // Same-origin browser requests don't send Origin (per CORS spec).
-  // Fall back to Referer to identify trusted same-origin callers.
   const origin = req.headers.get('Origin') || extractOriginFromReferer(req.headers.get('Referer')) || '';
 
   // Desktop app — always require API key
@@ -44,6 +55,18 @@ export function validateApiKey(req, options = {}) {
     const validKeys = (process.env.WORLDMONITOR_VALID_KEYS || '').split(',').filter(Boolean);
     if (!validKeys.includes(key)) return { valid: false, required: true, error: 'Invalid API key' };
     return { valid: true, required: true };
+  }
+
+  // Same-origin — always trusted (covers all self-hosted / custom-domain deployments)
+  if (isSameOrigin(origin, req)) {
+    if (forceKey && !key) {
+      return { valid: false, required: true, error: 'API key required' };
+    }
+    if (key) {
+      const validKeys = (process.env.WORLDMONITOR_VALID_KEYS || '').split(',').filter(Boolean);
+      if (!validKeys.includes(key)) return { valid: false, required: true, error: 'Invalid API key' };
+    }
+    return { valid: true, required: forceKey };
   }
 
   // Trusted browser origin (worldmonitor.app, Vercel previews, localhost dev) — no key needed
