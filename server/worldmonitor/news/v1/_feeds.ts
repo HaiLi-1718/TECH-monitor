@@ -156,6 +156,24 @@ export const VARIANT_FEEDS: Record<string, Record<string, ServerFeed[]>> = {
       { name: 'Clinical Trials Watch', url: gn('("clinical trial" OR "phase 2" OR "phase 3" OR "trial results" OR "trial readout") (biotech OR biopharma OR pharma) when:14d') },
       { name: 'FDA Drug Updates', url: gn('(FDA approval OR "FDA clears" OR "FDA grants" OR "drug approval" OR "clinical hold") (biotech OR pharma) when:14d') },
       { name: 'EMA Regulatory Watch', url: gn('(EMA approval OR "European Medicines Agency" OR "CHMP opinion") (biotech OR pharma) when:30d') },
+
+      // ── USPTO Bio/Medical Patent Feeds (updated weekly) ──
+      { name: 'USPTO Drugs (424)', url: 'https://www.freepatentsonline.com/rssfeed/rsspat424.xml' },
+      { name: 'USPTO Drugs (514)', url: 'https://www.freepatentsonline.com/rssfeed/rsspat514.xml' },
+      { name: 'USPTO MolBio (435)', url: 'https://www.freepatentsonline.com/rssfeed/rsspat435.xml' },
+      { name: 'USPTO Immunology (436)', url: 'https://www.freepatentsonline.com/rssfeed/rsspat436.xml' },
+      { name: 'USPTO Peptides (530)', url: 'https://www.freepatentsonline.com/rssfeed/rsspat530.xml' },
+      { name: 'USPTO Surgery (128)', url: 'https://www.freepatentsonline.com/rssfeed/rsspat128.xml' },
+      { name: 'USPTO Surgery (600)', url: 'https://www.freepatentsonline.com/rssfeed/rsspat600.xml' },
+      { name: 'USPTO Surgery (604)', url: 'https://www.freepatentsonline.com/rssfeed/rsspat604.xml' },
+      { name: 'USPTO Prosthesis (623)', url: 'https://www.freepatentsonline.com/rssfeed/rsspat623.xml' },
+      { name: 'USPTO Peptide Seq (930)', url: 'https://www.freepatentsonline.com/rssfeed/rsspat930.xml' },
+      // Applications (pending patents)
+      { name: 'USPTO Drugs App (424)', url: 'https://www.freepatentsonline.com/rssfeed/rssapp424.xml' },
+      { name: 'USPTO Drugs App (514)', url: 'https://www.freepatentsonline.com/rssfeed/rssapp514.xml' },
+      { name: 'USPTO MolBio App (435)', url: 'https://www.freepatentsonline.com/rssfeed/rssapp435.xml' },
+      { name: 'USPTO Surgery App (128)', url: 'https://www.freepatentsonline.com/rssfeed/rssapp128.xml' },
+      { name: 'USPTO Surgery App (600)', url: 'https://www.freepatentsonline.com/rssfeed/rssapp600.xml' },
     ],
     vcblogs: [
       { name: 'Y Combinator Blog', url: 'https://www.ycombinator.com/blog/rss/' },
