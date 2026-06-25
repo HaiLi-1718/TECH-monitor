@@ -902,9 +902,8 @@ canvas,
   height: 50vh;
   min-height: 350px;
   max-height: 90vh;
-  /* Allow resize up to 90% of viewport */
   border: 1px solid var(--border);
-  background: var(--surface);
+  background: transparent;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
