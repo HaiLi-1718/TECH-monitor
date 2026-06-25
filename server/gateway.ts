@@ -7,6 +7,8 @@
  *
  * Splitting domains into separate edge functions means Vercel bundles only the
  * code for one domain per function, cutting cold-start cost by ~20×.
+ *
+ * @build 2026-06-25 — force rebuild for same-origin origin-trust fix
  */
 
 import { createRouter, type RouteDescriptor } from './router';

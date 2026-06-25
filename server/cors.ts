@@ -5,6 +5,12 @@
  * deployment works without manual whitelisting.
  */
 
+const EXTRA_TRUSTED_ORIGINS: RegExp[] = (process.env.TRUSTED_ORIGINS || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean)
+  .map(host => new RegExp(`^https://${host.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`));
+
 const PRODUCTION_PATTERNS: RegExp[] = [
   /^https:\/\/(.*\.)?worldmonitor\.app$/,
   /^https:\/\/worldmonitor-[a-z0-9-]+-elie-[a-z0-9]+\.vercel\.app$/,
@@ -19,10 +25,12 @@ const DEV_PATTERNS: RegExp[] = [
   /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
 ];
 
-const ALLOWED_ORIGIN_PATTERNS: RegExp[] =
-  process.env.NODE_ENV === 'production'
+const ALLOWED_ORIGIN_PATTERNS: RegExp[] = [
+  ...(process.env.NODE_ENV === 'production'
     ? PRODUCTION_PATTERNS
-    : [...PRODUCTION_PATTERNS, ...DEV_PATTERNS];
+    : [...PRODUCTION_PATTERNS, ...DEV_PATTERNS]),
+  ...EXTRA_TRUSTED_ORIGINS,
+];
 
 function isAllowedOrigin(origin: string): boolean {
   return Boolean(origin) && ALLOWED_ORIGIN_PATTERNS.some((pattern) => pattern.test(origin));

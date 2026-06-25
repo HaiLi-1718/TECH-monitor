@@ -7,13 +7,24 @@ const DESKTOP_ORIGIN_PATTERNS = [
 
 // Hard-coded trusted origins — mainly for cross-origin embeds and the official deployment.
 // Self-hosted deployments are covered automatically by the same-origin check below.
-const BROWSER_ORIGIN_PATTERNS = [
+// Additional trusted origins can be added via TRUSTED_ORIGINS env var (comma-separated).
+const EXTRA_TRUSTED_ORIGINS = (process.env.TRUSTED_ORIGINS || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+
+const BUILTIN_BROWSER_ORIGINS = [
   /^https:\/\/(.*\.)?worldmonitor\.app$/,
   /^https:\/\/worldmonitor-[a-z0-9-]+-elie-[a-z0-9]+\.vercel\.app$/,
   ...(process.env.NODE_ENV === 'production' ? [] : [
     /^https?:\/\/localhost(:\d+)?$/,
     /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
   ]),
+];
+
+const BROWSER_ORIGIN_PATTERNS = [
+  ...BUILTIN_BROWSER_ORIGINS,
+  ...EXTRA_TRUSTED_ORIGINS.map(host => new RegExp(`^https://${host.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`)),
 ];
 
 function isDesktopOrigin(origin) {
