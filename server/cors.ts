@@ -1,8 +1,7 @@
 /**
  * CORS header generation -- TypeScript port of api/_cors.js.
  *
- * Same-origin requests are always trusted, so any self-hosted Vercel / custom-domain
- * deployment works without manual whitelisting.
+ * Add custom domains via TRUSTED_ORIGINS env var (comma-separated).
  */
 
 const EXTRA_TRUSTED_ORIGINS: RegExp[] = (process.env.TRUSTED_ORIGINS || '')
@@ -14,6 +13,7 @@ const EXTRA_TRUSTED_ORIGINS: RegExp[] = (process.env.TRUSTED_ORIGINS || '')
 const PRODUCTION_PATTERNS: RegExp[] = [
   /^https:\/\/(.*\.)?worldmonitor\.app$/,
   /^https:\/\/worldmonitor-[a-z0-9-]+-elie-[a-z0-9]+\.vercel\.app$/,
+  /^https:\/\/tech-monitor-beta\.vercel\.app$/,
   /^https?:\/\/tauri\.localhost(:\d+)?$/,
   /^https?:\/\/[a-z0-9-]+\.tauri\.localhost(:\d+)?$/i,
   /^tauri:\/\/localhost$/,
@@ -36,24 +36,9 @@ function isAllowedOrigin(origin: string): boolean {
   return Boolean(origin) && ALLOWED_ORIGIN_PATTERNS.some((pattern) => pattern.test(origin));
 }
 
-function isSameOrigin(req: Request): boolean {
-  const origin = req.headers.get('origin');
-  if (!origin) return false;
-  try {
-    const originHost = new URL(origin).host;
-    // Use the request URL's host primarily — Vercel may rewrite the Host header
-    // to an internal routing host that doesn't match the external origin.
-    const urlHost = new URL(req.url).host;
-    const headerHost = req.headers.get('Host');
-    return originHost === urlHost || (!!headerHost && originHost === headerHost);
-  } catch {
-    return false;
-  }
-}
-
 export function getCorsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get('origin') || '';
-  const allowOrigin = (isSameOrigin(req) || isAllowedOrigin(origin)) ? origin : 'https://worldmonitor.app';
+  const allowOrigin = isAllowedOrigin(origin) ? origin : 'https://worldmonitor.app';
   return {
     'Access-Control-Allow-Origin': allowOrigin,
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -66,6 +51,5 @@ export function getCorsHeaders(req: Request): Record<string, string> {
 export function isDisallowedOrigin(req: Request): boolean {
   const origin = req.headers.get('origin');
   if (!origin) return false;
-  if (isSameOrigin(req)) return false;
   return !isAllowedOrigin(origin);
 }
