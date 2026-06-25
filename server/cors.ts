@@ -33,8 +33,11 @@ function isSameOrigin(req: Request): boolean {
   if (!origin) return false;
   try {
     const originHost = new URL(origin).host;
-    const requestHost = req.headers.get('Host') || new URL(req.url).host;
-    return originHost === requestHost;
+    // Use the request URL's host primarily — Vercel may rewrite the Host header
+    // to an internal routing host that doesn't match the external origin.
+    const urlHost = new URL(req.url).host;
+    const headerHost = req.headers.get('Host');
+    return originHost === urlHost || (!!headerHost && originHost === headerHost);
   } catch {
     return false;
   }

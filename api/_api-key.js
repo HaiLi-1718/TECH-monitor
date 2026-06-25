@@ -28,10 +28,26 @@ function isSameOrigin(origin, req) {
   if (!origin) return false;
   try {
     const originHost = new URL(origin).host;
-    const requestHost = req.headers.get('Host') || new URL(req.url).host;
-    return originHost === requestHost;
+    // Use the request URL's host primarily — Vercel may rewrite the Host header
+    // to an internal routing host that doesn't match the external origin.
+    const urlHost = new URL(req.url).host;
+    const headerHost = req.headers.get('Host');
+    return originHost === urlHost || (!!headerHost && originHost === headerHost);
   } catch {
     return false;
+  }
+}
+
+function hasSameOriginHost(req) {
+  // Fallback when no Origin/Referer — check if Host header matches request URL host.
+  // If they differ (Vercel rewrote Host), trust the request URL host.
+  try {
+    const headerHost = req.headers.get('Host');
+    if (!headerHost) return true; // no host = can't check, allow
+    const urlHost = new URL(req.url).host;
+    return headerHost === urlHost;
+  } catch {
+    return true; // can't check, allow
   }
 }
 
@@ -65,6 +81,15 @@ export function validateApiKey(req, options = {}) {
     if (key) {
       const validKeys = (process.env.WORLDMONITOR_VALID_KEYS || '').split(',').filter(Boolean);
       if (!validKeys.includes(key)) return { valid: false, required: true, error: 'Invalid API key' };
+    }
+    return { valid: true, required: forceKey };
+  }
+
+  // No Origin/Referer but same host — likely same-origin GET (browsers omit
+  // Origin for same-origin GET requests). Trust it.
+  if (!origin && hasSameOriginHost(req)) {
+    if (forceKey && !key) {
+      return { valid: false, required: true, error: 'API key required' };
     }
     return { valid: true, required: forceKey };
   }
