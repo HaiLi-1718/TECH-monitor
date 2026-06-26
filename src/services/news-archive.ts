@@ -17,6 +17,15 @@ const HANDLE_DB_NAME = 'worldmonitor_fs_handles';
 const HANDLE_DB_VERSION = 1;
 const EXPORT_DIR_HANDLE_KEY = 'news-export-dir';
 
+/** Panel categories included in scheduled / incremental folder export. */
+export const EXPORT_PANEL_CATEGORIES = ['ai', 'policy', 'security', 'biopharma'] as const;
+
+export type ExportPanelCategory = (typeof EXPORT_PANEL_CATEGORIES)[number];
+
+export function isExportableArchiveCategory(category: string): boolean {
+  return (EXPORT_PANEL_CATEGORIES as readonly string[]).includes(category);
+}
+
 export interface ArchivedNewsRecord {
   id: string;
   category: string;
@@ -309,14 +318,26 @@ export function addExportedIds(ids: string[]): Promise<void> {
   });
 }
 
-export function listUnexportedArticles(): Promise<ArchivedNewsRecord[]> {
+export interface ListUnexportedArticlesOptions {
+  /** When set, only rows whose `category` is in this list are returned. */
+  categories?: readonly string[];
+}
+
+export function listUnexportedArticles(
+  options: ListUnexportedArticlesOptions = {},
+): Promise<ArchivedNewsRecord[]> {
   return enqueue(async () => {
     const database = await openDB();
     const [all, exported] = await Promise.all([
       readAllArticles(database),
       readExportedIdSet(database),
     ]);
-    return all.filter((row) => !exported.has(row.id));
+    const allowed = options.categories ? new Set(options.categories) : null;
+    return all.filter((row) => {
+      if (exported.has(row.id)) return false;
+      if (allowed && !allowed.has(row.category)) return false;
+      return true;
+    });
   });
 }
 
@@ -513,7 +534,7 @@ export async function exportUnexportedArticlesToDirectory(
     return { ok: false, files: [], totalCount: 0, skipped: false, error: 'PERMISSION_DENIED' };
   }
 
-  const pending = await listUnexportedArticles();
+  const pending = await listUnexportedArticles({ categories: EXPORT_PANEL_CATEGORIES });
   if (pending.length === 0) {
     return { ok: true, files: [], totalCount: 0, skipped: true };
   }
