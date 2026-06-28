@@ -28,9 +28,6 @@ const RELAY_ONLY_DOMAINS = new Set([
   'feeds.capi24.com',
   'islandtimes.org',
   'www.atlanticcouncil.org',
-  'www.freepatentsonline.com',
-  'www.fiercebiotech.com',
-  'www.biospace.com',
 ]);
 
 const DIRECT_FETCH_HEADERS = Object.freeze({

@@ -532,12 +532,12 @@ const TECH_FEEDS: Record<string, Feed[]> = {
     { name: 'Fierce Biotech', url: rss('https://www.fiercebiotech.com/rss/xml') },
     { name: 'FiercePharma', url: rss('https://www.fiercepharma.com/rss/xml') },
     { name: 'STAT Biotech', url: rss('https://www.statnews.com/feed/') },
-    { name: 'BioSpace News', url: rss('https://www.biospace.com/news/feed/') },
+    { name: 'BioSpace News', url: rss('https://www.biospace.com/index.rss') },
     { name: 'Pharmaceutical Technology', url: rss('https://www.pharmaceutical-technology.com/feed/') },
     { name: 'PharmaTimes', url: rss('https://www.pharmatimes.com/rss') },
     // Scientific journals
     { name: 'Nature Biotechnology', url: rss('https://www.nature.com/nbt.rss') },
-    { name: 'Cell Journal', url: rss('https://api.cell.com/cell/current.rss') },
+    { name: 'Cell Journal', url: rss('https://www.cell.com/cell/current.rss') },
     { name: 'Science Daily Health', url: rss('https://www.sciencedaily.com/rss/health_medicine.xml') },
     // Biotech media
     { name: 'Labiotech.eu', url: rss('https://www.labiotech.eu/feed/') },
@@ -681,7 +681,7 @@ const LOCALTECH_FEEDS: Record<string, Feed[]> = {
     { name: 'MIT Tech Review AI', url: rss('https://www.technologyreview.com/topic/artificial-intelligence/feed') },
     { name: 'ArXiv AI', url: rss('https://export.arxiv.org/rss/cs.AI') },
     { name: 'ArXiv ML', url: rss('https://export.arxiv.org/rss/cs.LG') },
-    { name: 'OpenAI Blog', url: rss('https://openai.com/blog/rss.xml') },
+    { name: 'OpenAI Blog', url: rss('https://openai.com/news/rss.xml') },
     { name: 'SyncedReview', url: rss('https://syncedreview.com/feed/') },
   ],
   startups: [
