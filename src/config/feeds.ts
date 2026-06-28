@@ -4,6 +4,10 @@ import { rssProxyUrl } from '@/utils';
 const rss = rssProxyUrl;
 const railwayRss = rssProxyUrl;
 
+// Google News RSS wrapper — used for sources whose domains block Vercel edge IPs.
+const gn = (q: string) =>
+  `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`;
+
 // Source tier system for prioritization (lower = more authoritative)
 // Tier 1: Wire services - fastest, most reliable breaking news
 // Tier 2: Major outlets - high-quality journalism
@@ -528,30 +532,30 @@ const TECH_FEEDS: Record<string, Feed[]> = {
     { name: 'CB Insights', url: rss('https://www.cbinsights.com/research/feed/') },
   ],
   biopharma: [
-    // General biotech & pharma news
-    { name: 'Fierce Biotech', url: rss('https://www.fiercebiotech.com/rss/xml') },
-    { name: 'FiercePharma', url: rss('https://www.fiercepharma.com/rss/xml') },
+    // General biotech & pharma news (Google News for Cloudflare-blocked domains)
+    { name: 'Fierce Biotech', url: rss(gn('site:fiercebiotech.com')) },
+    { name: 'FiercePharma', url: rss(gn('site:fiercepharma.com')) },
     { name: 'STAT Biotech', url: rss('https://www.statnews.com/feed/') },
-    { name: 'BioSpace News', url: rss('https://www.biospace.com/index.rss') },
-    { name: 'Pharmaceutical Technology', url: rss('https://www.pharmaceutical-technology.com/feed/') },
+    { name: 'BioSpace News', url: rss(gn('site:biospace.com')) },
+    { name: 'Pharmaceutical Technology', url: rss(gn('site:pharmaceutical-technology.com biotech OR pharma')) },
     { name: 'PharmaTimes', url: rss('https://www.pharmatimes.com/rss') },
-    // Scientific journals
+    // Scientific journals (direct RSS — not blocked)
     { name: 'Nature Biotechnology', url: rss('https://www.nature.com/nbt.rss') },
     { name: 'Cell Journal', url: rss('https://www.cell.com/cell/current.rss') },
     { name: 'Science Daily Health', url: rss('https://www.sciencedaily.com/rss/health_medicine.xml') },
-    // Biotech media
+    // Biotech media (direct RSS — not blocked)
     { name: 'Labiotech.eu', url: rss('https://www.labiotech.eu/feed/') },
     { name: 'BiotechBlog', url: rss('https://www.biotechblog.com/feed/') },
     { name: 'News Medical', url: rss('https://www.news-medical.net/syndication.axd?format=rss') },
-    // USPTO Medical & Biotech Patents (via Railway relay on Vercel)
-    { name: 'USPTO Drugs', url: rss('https://www.freepatentsonline.com/rssfeed/rsspat424.xml') },
-    { name: 'USPTO Drugs II', url: rss('https://www.freepatentsonline.com/rssfeed/rsspat514.xml') },
-    { name: 'USPTO Surgery', url: rss('https://www.freepatentsonline.com/rssfeed/rsspat128.xml') },
-    { name: 'USPTO Surgery II', url: rss('https://www.freepatentsonline.com/rssfeed/rsspat600.xml') },
-    { name: 'USPTO Surgery III', url: rss('https://www.freepatentsonline.com/rssfeed/rsspat604.xml') },
-    { name: 'USPTO Prosthesis', url: rss('https://www.freepatentsonline.com/rssfeed/rsspat623.xml') },
-    { name: 'USPTO Dentistry', url: rss('https://www.freepatentsonline.com/rssfeed/rsspat433.xml') },
-    { name: 'USPTO Molecular Biology', url: rss('https://www.freepatentsonline.com/rssfeed/rsspat435.xml') },
+    // USPTO Bio/Medical Patent Feeds (via Google News — freepatentsonline.com blocks Vercel IPs)
+    { name: 'Patent Drugs', url: rss(gn('USPTO patent (drug OR pharmaceutical OR "small molecule" OR formulation) granted when:7d')) },
+    { name: 'Patent Biotech', url: rss(gn('USPTO patent (biotech OR biotechnology OR "gene therapy" OR CRISPR OR mRNA OR antibody) granted when:7d')) },
+    { name: 'Patent MolBio', url: rss(gn('USPTO patent ("molecular biology" OR microbiology OR sequencing OR PCR OR plasmid) granted when:7d')) },
+    { name: 'Patent Immunology', url: rss(gn('USPTO patent (immunology OR immunotherapy OR "CAR T" OR "checkpoint inhibitor" OR vaccine) granted when:7d')) },
+    { name: 'Patent Surgery', url: rss(gn('USPTO patent (surgery OR surgical OR "medical device" OR implant OR catheter OR stent) granted when:7d')) },
+    { name: 'Patent Prosthesis', url: rss(gn('USPTO patent (prosthesis OR prosthetic OR orthopedics OR artificial organ OR exoskeleton) granted when:7d')) },
+    { name: 'Patent Diagnostics', url: rss(gn('USPTO patent (diagnostic OR diagnosis OR biomarker OR "liquid biopsy" OR assay) granted when:7d')) },
+    { name: 'Patent Peptide', url: rss(gn('USPTO patent (peptide OR protein OR enzyme OR "amino acid" OR recombinant) granted when:7d')) },
   ],
   vcblogs: [
     { name: 'Y Combinator Blog', url: rss('https://www.ycombinator.com/blog/rss/') },
@@ -681,7 +685,7 @@ const LOCALTECH_FEEDS: Record<string, Feed[]> = {
     { name: 'MIT Tech Review AI', url: rss('https://www.technologyreview.com/topic/artificial-intelligence/feed') },
     { name: 'ArXiv AI', url: rss('https://export.arxiv.org/rss/cs.AI') },
     { name: 'ArXiv ML', url: rss('https://export.arxiv.org/rss/cs.LG') },
-    { name: 'OpenAI Blog', url: rss('https://openai.com/news/rss.xml') },
+    { name: 'OpenAI Blog', url: rss(gn('site:openai.com (AI OR GPT OR model OR "artificial intelligence")')) },
     { name: 'SyncedReview', url: rss('https://syncedreview.com/feed/') },
   ],
   startups: [
