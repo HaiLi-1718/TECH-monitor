@@ -75,33 +75,58 @@ function toResponse(payload: CachedResponsePayload): Response {
   });
 }
 
-async function fetchAndPersist(url: string): Promise<Response> {
-  const response = await fetch(proxyUrl(url));
-  if (response.ok && shouldPersistResponse(url)) {
+const FETCH_TIMEOUT_MS = 15_000;
+
+async function fetchWithTimeout(url: string, timeoutMs = FETCH_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function fetchAndPersist(url: string, retries = 1): Promise<Response> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const body = await response.clone().text();
-      void setPersistentCache(buildResponseCacheKey(url), toCachedPayload(url, response, body));
+      const response = await fetchWithTimeout(proxyUrl(url));
+      if (response.ok && shouldPersistResponse(url)) {
+        try {
+          const body = await response.clone().text();
+          void setPersistentCache(buildResponseCacheKey(url), toCachedPayload(url, response, body));
+        } catch (error) {
+          console.warn('[proxy] Failed to persist API response cache', error);
+        }
+      }
+      return response;
     } catch (error) {
-      console.warn('[proxy] Failed to persist API response cache', error);
+      lastError = error;
+      if (attempt < retries) {
+        // Exponential backoff: 800ms, 1600ms, ...
+        await new Promise(r => setTimeout(r, 800 * (2 ** attempt)));
+      }
     }
   }
-  return response;
+  throw lastError;
 }
 
 export async function fetchWithProxy(url: string): Promise<Response> {
   if (!shouldPersistResponse(url)) {
-    return fetch(proxyUrl(url));
+    return fetchWithTimeout(proxyUrl(url));
   }
 
   const cacheKey = buildResponseCacheKey(url);
   const cached = await getPersistentCache<CachedResponsePayload>(cacheKey);
 
   if (cached?.data) {
-    void fetchAndPersist(url).catch((error) => {
+    void fetchAndPersist(url, 0).catch((error) => {
       console.warn('[proxy] Background refresh failed for cached API response', error);
     });
     return toResponse(cached.data);
   }
 
-  return fetchAndPersist(url);
+  // First visit (no cache): retry once with backoff for cold-start resilience
+  return fetchAndPersist(url, 1);
 }

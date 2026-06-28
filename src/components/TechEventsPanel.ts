@@ -41,7 +41,8 @@ export class TechEventsPanel extends Panel {
       return;
     }
 
-    // Fallback: RPC call with retry
+    // Fallback: RPC call with retry (exponential backoff)
+    const retryDelays = [2_000, 5_000, 10_000];
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         const data = await researchClient.listTechEvents({
@@ -58,8 +59,9 @@ export class TechEventsPanel extends Panel {
         this.error = null;
 
         if (this.events.length === 0 && attempt < 2) {
-          this.showRetrying(undefined, 15);
-          await new Promise(r => setTimeout(r, 15_000));
+          const delay = retryDelays[attempt] ?? 15_000;
+          this.showRetrying(undefined, Math.round(delay / 1000));
+          await new Promise(r => setTimeout(r, delay));
           if (!this.element?.isConnected) return;
           continue;
         }
@@ -68,8 +70,9 @@ export class TechEventsPanel extends Panel {
         if (this.isAbortError(err)) return;
         if (!this.element?.isConnected) return;
         if (attempt < 2) {
-          this.showRetrying(undefined, 15);
-          await new Promise(r => setTimeout(r, 15_000));
+          const delay = retryDelays[attempt] ?? 15_000;
+          this.showRetrying(undefined, Math.round(delay / 1000));
+          await new Promise(r => setTimeout(r, delay));
           if (!this.element?.isConnected) return;
           continue;
         }

@@ -11,8 +11,8 @@ import { canQueueAiClassification, AI_CLASSIFY_MAX_PER_FEED } from './ai-classif
 import { mlWorker } from './ml-worker';
 import { isHeadlineMemoryEnabled } from './ai-flow-settings';
 
-const FEED_COOLDOWN_MS = 5 * 60 * 1000;
-const MAX_FAILURES = 2;
+const FEED_COOLDOWN_MS = 2 * 60 * 1000;
+const MAX_FAILURES = 3;
 const MAX_CACHE_ENTRIES = 100;
 const FEED_SCOPE_SEPARATOR = '::';
 const feedFailures = new Map<string, { count: number; cooldownUntil: number }>();
@@ -102,7 +102,7 @@ function recordFeedFailure(feedScope: string): void {
   if (state.count >= MAX_FAILURES) {
     state.cooldownUntil = Date.now() + FEED_COOLDOWN_MS;
     const { feedName, lang } = parseFeedScope(feedScope);
-    console.warn(`[RSS] ${feedName} (${lang}) on cooldown for 5 minutes after ${state.count} failures`);
+    console.warn(`[RSS] ${feedName} (${lang}) on cooldown for 2 minutes after ${state.count} failures`);
   }
   feedFailures.set(feedScope, state);
 }

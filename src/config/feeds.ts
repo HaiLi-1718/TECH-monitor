@@ -528,9 +528,30 @@ const TECH_FEEDS: Record<string, Feed[]> = {
     { name: 'CB Insights', url: rss('https://www.cbinsights.com/research/feed/') },
   ],
   biopharma: [
+    // General biotech & pharma news
     { name: 'Fierce Biotech', url: rss('https://www.fiercebiotech.com/rss/xml') },
+    { name: 'FiercePharma', url: rss('https://www.fiercepharma.com/rss/xml') },
     { name: 'STAT Biotech', url: rss('https://www.statnews.com/feed/') },
     { name: 'BioSpace News', url: rss('https://www.biospace.com/news/feed/') },
+    { name: 'Pharmaceutical Technology', url: rss('https://www.pharmaceutical-technology.com/feed/') },
+    { name: 'PharmaTimes', url: rss('https://www.pharmatimes.com/rss') },
+    // Scientific journals
+    { name: 'Nature Biotechnology', url: rss('https://www.nature.com/nbt.rss') },
+    { name: 'Cell Journal', url: rss('https://api.cell.com/cell/current.rss') },
+    { name: 'Science Daily Health', url: rss('https://www.sciencedaily.com/rss/health_medicine.xml') },
+    // Biotech media
+    { name: 'Labiotech.eu', url: rss('https://www.labiotech.eu/feed/') },
+    { name: 'BiotechBlog', url: rss('https://www.biotechblog.com/feed/') },
+    { name: 'News Medical', url: rss('https://www.news-medical.net/syndication.axd?format=rss') },
+    // USPTO Medical & Biotech Patents (via Railway relay on Vercel)
+    { name: 'USPTO Drugs', url: rss('https://www.freepatentsonline.com/rssfeed/rsspat424.xml') },
+    { name: 'USPTO Drugs II', url: rss('https://www.freepatentsonline.com/rssfeed/rsspat514.xml') },
+    { name: 'USPTO Surgery', url: rss('https://www.freepatentsonline.com/rssfeed/rsspat128.xml') },
+    { name: 'USPTO Surgery II', url: rss('https://www.freepatentsonline.com/rssfeed/rsspat600.xml') },
+    { name: 'USPTO Surgery III', url: rss('https://www.freepatentsonline.com/rssfeed/rsspat604.xml') },
+    { name: 'USPTO Prosthesis', url: rss('https://www.freepatentsonline.com/rssfeed/rsspat623.xml') },
+    { name: 'USPTO Dentistry', url: rss('https://www.freepatentsonline.com/rssfeed/rsspat433.xml') },
+    { name: 'USPTO Molecular Biology', url: rss('https://www.freepatentsonline.com/rssfeed/rsspat435.xml') },
   ],
   vcblogs: [
     { name: 'Y Combinator Blog', url: rss('https://www.ycombinator.com/blog/rss/') },
@@ -580,12 +601,15 @@ const TECH_FEEDS: Record<string, Feed[]> = {
     { name: 'Dark Reading', url: rss('https://www.darkreading.com/rss.xml') },
     { name: 'Schneier', url: rss('https://www.schneier.com/feed/') },
     { name: 'CISA Advisories', url: rss('https://www.cisa.gov/cybersecurity-advisories/all.xml') },
+    { name: 'CyberScoop', url: rss('https://cyberscoop.com/feed/') },
+    { name: 'Wired Security', url: rss('https://www.wired.com/feed/category/security/latest/rss') },
   ],
   policy: [
     { name: '36Kr', url: rss('https://36kr.com/feed'), lang: 'zh' },
     { name: 'InfoQ 中文', url: rss('https://www.infoq.cn/feed'), lang: 'zh' },
     // US Policy
     { name: 'Politico Tech', url: rss('https://rss.politico.com/technology.xml') },
+    { name: 'Wired Business', url: rss('https://www.wired.com/feed/category/business/latest/rss') },
     // EU Digital Policy
     // China Tech Policy
     // UK Policy
@@ -657,6 +681,8 @@ const LOCALTECH_FEEDS: Record<string, Feed[]> = {
     { name: 'MIT Tech Review AI', url: rss('https://www.technologyreview.com/topic/artificial-intelligence/feed') },
     { name: 'ArXiv AI', url: rss('https://export.arxiv.org/rss/cs.AI') },
     { name: 'ArXiv ML', url: rss('https://export.arxiv.org/rss/cs.LG') },
+    { name: 'OpenAI Blog', url: rss('https://openai.com/blog/rss.xml') },
+    { name: 'SyncedReview', url: rss('https://syncedreview.com/feed/') },
   ],
   startups: [
     { name: '36Kr', url: rss('https://36kr.com/feed'), lang: 'zh' },

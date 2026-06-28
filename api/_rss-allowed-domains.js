@@ -292,5 +292,20 @@ export default [
   "www.leiphone.com",
   "36kr.com",
   "www.infoq.cn",
-  "www.tmtpost.com"
+  "www.tmtpost.com",
+  "www.fiercebiotech.com",
+  "www.statnews.com",
+  "www.biospace.com",
+  "www.fiercepharma.com",
+  "www.pharmaceutical-technology.com",
+  "www.cell.com",
+  "www.news-medical.net",
+  "www.pharmatimes.com",
+  "www.biotechblog.com",
+  "www.labiotech.eu",
+  "www.freepatentsonline.com",
+  "syncedreview.com",
+  "cyberscoop.com",
+  "www.wired.com",
+  "api.cell.com"
 ];
