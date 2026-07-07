@@ -1424,7 +1424,15 @@
       "groupToday": "Today",
       "groupYesterday": "Yesterday",
       "groupEarlier": "Earlier",
-      "noNews": "No news in this period"
+      "noNews": "No news in this period",
+      "tabExtracted": "Events AI",
+      "extracting": "AI is extracting events…",
+      "noExtracted": "No extracted events yet",
+      "extractedSources": "{{count}} sources",
+      "extractedFallback": "Rule-based",
+      "severityHigh": "High",
+      "severityMedium": "Medium",
+      "severityLow": "Low"
     },
     "techReadiness": {
       "internetUsers": "Internet Users",

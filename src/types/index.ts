@@ -135,6 +135,26 @@ export interface ClusteredEvent {
   lang?: string;
 }
 
+export type ExtractedEventSeverity = 'high' | 'medium' | 'low' | 'unknown';
+
+/** A structured event distilled from a news cluster via LLM (or rule-based fallback). */
+export interface ExtractedEvent {
+  id: string;                        // cluster id — anchor for dedup + future lifecycle merging
+  title: string;
+  category: string;                  // classifier category (ai/security/tech/...)
+  subcategory: string;               // free-form event type ("funding round", "data breach", ...)
+  severity: ExtractedEventSeverity;
+  confidence: number;
+  summary: string;                   // one-sentence what-happened
+  entities: string[];
+  sources: NewsItem[];               // provenance — cluster items (capped)
+  sourceCount: number;
+  link: string;
+  firstSeen: string;                 // ISO — lifecycle start
+  lastUpdated: string;               // ISO
+  extractionSource: 'llm' | 'fallback';
+}
+
 export type AssetType = 'pipeline' | 'cable' | 'datacenter' | 'base' | 'nuclear';
 
 export interface RelatedAsset {

@@ -78,6 +78,7 @@ import {
 import { checkBatchForBreakingAlerts, dispatchOrefBreakingAlert } from '@/services/breaking-news-alerts';
 import { mlWorker } from '@/services/ml-worker';
 import { clusterNewsHybrid } from '@/services/clustering';
+import { extractEventsFromClusters } from '@/services/event-extraction-llm';
 import { ingestProtests, ingestFlights, ingestVessels, ingestEarthquakes, detectGeoConvergence, geoConvergenceToSignal } from '@/services/geo-convergence';
 import { signalAggregator } from '@/services/signal-aggregator';
 import { updateAndCheck, consumeServerAnomalies, fetchLiveAnomalies } from '@/services/temporal-baseline';
@@ -984,6 +985,12 @@ export class DataLoaderManager implements AppModule {
 
       const insightsPanel = this.ctx.panels['insights'] as InsightsPanel | undefined;
       insightsPanel?.updateInsights(this.ctx.latestClusters, this.ctx.allNews);
+
+      // Distill top clusters into structured events (LLM + rule-based fallback),
+      // then notify the events panel so its "extracted" tab repaints when ready.
+      void extractEventsFromClusters(this.ctx.latestClusters).then(() => {
+        (this.ctx.panels['events'] as { onEventsExtracted?: () => void } | undefined)?.onEventsExtracted?.();
+      });
 
       const geoLocated = this.ctx.latestClusters
         .filter((c): c is typeof c & { lat: number; lon: number } => c.lat != null && c.lon != null)

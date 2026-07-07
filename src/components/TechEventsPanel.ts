@@ -7,11 +7,12 @@ import { formatTime } from '@/utils';
 import { isDesktopRuntime } from '@/services/runtime';
 import { ResearchServiceClient } from '@/generated/client/worldmonitor/research/v1/service_client';
 import type { TechEvent, ListTechEventsResponse } from '@/generated/client/worldmonitor/research/v1/service_client';
-import type { NewsItem, DeductContextDetail } from '@/types';
+import type { NewsItem, DeductContextDetail, ExtractedEvent } from '@/types';
 import { buildNewsContext } from '@/utils/news-context';
 import { getHydratedData } from '@/services/bootstrap';
+import { getExtractedEvents, hasExtractionRun } from '@/services/event-extraction-llm';
 type ViewMode = 'upcoming' | 'conferences' | 'earnings' | 'all';
-type MainMode = 'news' | 'calendar';
+type MainMode = 'news' | 'extracted' | 'calendar';
 
 /** News categories shown in the multi-category timeline, in display order. */
 const CATEGORY_ORDER = ['ai', 'security', 'policy', 'biopharma', 'tech', 'startups'] as const;
@@ -28,6 +29,14 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 /** Max items rendered in the timeline (across all categories). */
 const TIMELINE_LIMIT = 60;
+
+/** Left-border accent for extracted-event cards, by severity. */
+const SEVERITY_COLORS: Record<string, string> = {
+  high: '#ff4444',
+  medium: '#ffaa00',
+  low: '#4488ff',
+  unknown: '#888888',
+};
 
 type TimelineItem = NewsItem & { category: string };
 
@@ -57,6 +66,11 @@ export class TechEventsPanel extends Panel {
   /** Called by the data loader whenever any news category refreshes. */
   public onNewsUpdated(): void {
     if (this.mainMode === 'news') this.render();
+  }
+
+  /** Called by the data loader after a clustering + event-extraction pass. */
+  public onEventsExtracted(): void {
+    if (this.mainMode === 'extracted') this.render();
   }
 
   private async fetchEvents(): Promise<void> {
@@ -121,15 +135,24 @@ export class TechEventsPanel extends Panel {
     replaceChildren(this.content,
       h('div', { className: 'tech-events-panel' },
         this.buildMainTabs(),
-        this.mainMode === 'news' ? this.renderNewsTimeline() : this.renderCalendar(),
+        this.renderMainBody(),
       ),
     );
   }
 
-  /** Top-level switch between the news timeline and the legacy tech calendar. */
+  private renderMainBody(): HTMLElement {
+    switch (this.mainMode) {
+      case 'news': return this.renderNewsTimeline();
+      case 'extracted': return this.renderExtractedEvents();
+      case 'calendar': return this.renderCalendar();
+    }
+  }
+
+  /** Top-level switch between news timeline, extracted events, and the legacy tech calendar. */
   private buildMainTabs(): HTMLElement {
     const entries: [MainMode, string][] = [
       ['news', t('components.techEvents.tabNews')],
+      ['extracted', t('components.techEvents.tabExtracted')],
       ['calendar', t('components.techEvents.tabCalendar')],
     ];
     return h('div', { className: 'panel-tabs tech-events-main-tabs' },
@@ -244,6 +267,94 @@ export class TechEventsPanel extends Panel {
       h('a', { className: 'item-title', href: sanitizeUrl(item.link), target: '_blank', rel: 'noopener' }, item.title),
       h('div', { className: 'item-time' }, formatTime(new Date(item.pubDate))),
     );
+  }
+
+  // ── Extracted events (LLM) ───────────────────────────────────────────────────
+
+  private renderExtractedEvents(): HTMLElement {
+    this.setErrorState(false);
+    const events = getExtractedEvents();
+    this.setCount(events.length);
+
+    if (events.length === 0) {
+      // Distinguish "still working" from "genuinely nothing" using the run flag.
+      const msg = hasExtractionRun()
+        ? t('components.techEvents.noExtracted')
+        : t('components.techEvents.extracting');
+      return h('div', { className: 'empty-state' }, msg);
+    }
+
+    return h('div', { className: 'extracted-events' },
+      ...events.map(ev => this.buildExtractedCard(ev)),
+    );
+  }
+
+  private buildExtractedCard(ev: ExtractedEvent): HTMLElement {
+    const accent = SEVERITY_COLORS[ev.severity] ?? SEVERITY_COLORS.unknown;
+    const sevLabel = ev.severity === 'unknown'
+      ? ''
+      : t(`components.techEvents.severity${ev.severity.charAt(0).toUpperCase()}${ev.severity.slice(1)}`);
+    const badgeText = ev.subcategory ? `${ev.category} · ${ev.subcategory}` : ev.category;
+
+    return h('div', { className: 'extracted-card', style: `border-left-color:${accent}` },
+      h('div', { className: 'extracted-card-head' },
+        h('span', { className: 'extracted-badge', style: `color:${accent};border-color:${accent}` }, badgeText),
+        sevLabel ? h('span', { className: 'extracted-severity', style: `background:${accent}` }, sevLabel) : false,
+        ev.extractionSource === 'fallback'
+          ? h('span', { className: 'extracted-fallback-tag' }, t('components.techEvents.extractedFallback'))
+          : false,
+      ),
+      h('a', { className: 'extracted-title', href: sanitizeUrl(ev.link), target: '_blank', rel: 'noopener' }, ev.title),
+      ev.summary ? h('div', { className: 'extracted-summary' }, ev.summary) : false,
+      ev.entities.length > 0
+        ? h('div', { className: 'extracted-entities' },
+          ...ev.entities.slice(0, 6).map(e => h('span', { className: 'entity-chip' }, e)),
+        )
+        : false,
+      h('div', { className: 'extracted-meta' },
+        h('span', { className: 'extracted-sources-count' },
+          t('components.techEvents.extractedSources', { count: String(ev.sourceCount) })),
+        h('span', { className: 'extracted-time' }, formatTime(new Date(ev.lastUpdated))),
+        isDesktopRuntime() ? h('button', {
+          className: 'event-deduce-link',
+          title: 'Deduce Situation with AI',
+          style: 'background:none;border:none;cursor:pointer;opacity:0.7;font-size:1.1em;margin-left:auto;',
+          onClick: (e: Event) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.deduceExtractedEvent(ev);
+          },
+        }, '\u{1F9E0}') : false,
+      ),
+      ev.sources.length > 0
+        ? h('details', { className: 'extracted-sources' },
+          h('summary', null, t('components.techEvents.extractedSources', { count: String(ev.sources.length) })),
+          ...ev.sources.map(s =>
+            h('div', { className: 'item' },
+              h('div', { className: 'item-source' }, s.source),
+              h('a', { className: 'item-title', href: sanitizeUrl(s.link), target: '_blank', rel: 'noopener' }, s.title),
+            ),
+          ),
+        )
+        : false,
+    );
+  }
+
+  /** Feed the structured event into the AI deduction panel with rich context. */
+  private deduceExtractedEvent(ev: ExtractedEvent): void {
+    let geoContext = `Extracted event: ${ev.title}\n`
+      + `Category: ${ev.category}${ev.subcategory ? ` / ${ev.subcategory}` : ''}. Severity: ${ev.severity}.`;
+    if (ev.summary) geoContext += `\nSummary: ${ev.summary}`;
+    if (ev.entities.length) geoContext += `\nEntities: ${ev.entities.join(', ')}`;
+    if (ev.sources.length) {
+      geoContext += '\n\nSource headlines:\n' + ev.sources.map(s => `- ${s.title} (${s.source})`).join('\n');
+    }
+    const detail: DeductContextDetail = {
+      query: `What is the significance and likely impact of: ${ev.title}?`,
+      geoContext,
+      autoSubmit: true,
+    };
+    document.dispatchEvent(new CustomEvent('wm:deduct-context', { detail }));
   }
 
   // ── Tech calendar (legacy) ───────────────────────────────────────────────────

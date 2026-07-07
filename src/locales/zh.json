@@ -1376,7 +1376,15 @@
       "groupToday": "今天",
       "groupYesterday": "昨天",
       "groupEarlier": "更早",
-      "noNews": "该时段暂无新闻"
+      "noNews": "该时段暂无新闻",
+      "tabExtracted": "事件抽取",
+      "extracting": "AI 正在抽取事件…",
+      "noExtracted": "暂无抽取到的事件",
+      "extractedSources": "{{count}} 条来源",
+      "extractedFallback": "规则抽取",
+      "severityHigh": "高",
+      "severityMedium": "中",
+      "severityLow": "低"
     },
     "techReadiness": {
       "internetUsers": "互联网用户",
