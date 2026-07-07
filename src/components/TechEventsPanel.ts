@@ -56,6 +56,7 @@ export class TechEventsPanel extends Panel {
     id: string,
     private getLatestNews?: () => NewsItem[],
     private getNewsByCategory?: () => Record<string, NewsItem[]>,
+    private onFocusLocation?: (lat: number, lon: number) => void,
   ) {
     super({ id, title: t('panels.events'), showCount: true });
     this.element.classList.add('panel-tall');
@@ -250,6 +251,7 @@ export class TechEventsPanel extends Panel {
           ),
         ),
       ),
+      this.renderMilestones(),
       groups.length > 0
         ? h('div', { className: 'news-timeline' },
           ...groups.map(g =>
@@ -274,6 +276,47 @@ export class TechEventsPanel extends Panel {
       ),
       h('a', { className: 'item-title', href: sanitizeUrl(item.link), target: '_blank', rel: 'noopener' }, item.title),
       h('div', { className: 'item-time' }, formatTime(new Date(item.pubDate))),
+    );
+  }
+
+  // ── Milestones (fused into news timeline) ────────────────────────────────────
+
+  private renderMilestones(): HTMLElement | false {
+    const all = getExtractedEvents();
+    // Only show milestones on the "All" filter — per-category views already isolate.
+    if (this.newsFilter !== 'all' || all.length === 0) return false;
+
+    const top = all
+      .filter(ev => ev.severity === 'high' || ev.severity === 'medium')
+      .slice(0, 3);
+    if (top.length === 0) return false;
+
+    return h('div', { className: 'news-milestones' },
+      h('div', { className: 'milestones-header', onClick: () => { this.mainMode = 'extracted'; this.render(); } },
+        h('span', null, t('components.techEvents.tabExtracted')),
+        h('button', { className: 'milestones-view-all' },
+          t('components.techEvents.viewAll'),
+        ),
+      ),
+      ...top.map(ev => {
+        const accent = SEVERITY_COLORS[ev.severity] ?? '#888';
+        return h('a', {
+          className: 'milestone-card',
+          style: `border-left-color:${accent}`,
+          href: sanitizeUrl(ev.link),
+          target: '_blank',
+          rel: 'noopener',
+          onClick: () => { /* allow link navigation but also offer tab switch via header */ },
+        },
+          h('span', { className: 'milestone-badge', style: `color:${accent};border-color:${accent}` },
+            ev.subcategory ? `${ev.category} · ${ev.subcategory}` : ev.category),
+          ev.hasNewActivity
+            ? h('span', { className: 'extracted-activity-tag', style: 'font-size:8px' }, t('components.techEvents.newActivity'))
+            : false,
+          h('span', { className: 'milestone-title' }, ev.title),
+          h('span', { className: 'milestone-time' }, formatTime(new Date(ev.lastUpdated))),
+        );
+      }),
     );
   }
 
@@ -332,6 +375,19 @@ export class TechEventsPanel extends Panel {
           ? h('span', { className: 'extracted-updated' },
             t('components.techEvents.lastUpdate', { time: formatTime(new Date(ev.lastUpdated)) }))
           : false,
+        this.onFocusLocation && ev.lat != null && ev.lon != null
+          ? h('button', {
+            className: 'event-map-link',
+            title: t('components.techEvents.showOnMap'),
+            style: 'background:none;border:none;cursor:pointer;padding:0;margin:0;width:18px;height:18px;flex-shrink:0;',
+            onClick: (e: Event) => {
+              e.preventDefault();
+              e.stopPropagation();
+              this.onFocusLocation!(ev.lat!, ev.lon!);
+            },
+          },
+            h('span', { className: 'map-pin-icon' }),
+          ) : false,
         isDesktopRuntime() ? h('button', {
           className: 'event-deduce-link',
           title: 'Deduce Situation with AI',

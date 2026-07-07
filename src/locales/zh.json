@@ -1387,7 +1387,8 @@
       "severityLow": "低",
       "newActivity": "有更新",
       "firstReported": "首报 {{time}}",
-      "lastUpdate": "更新于 {{time}}"
+      "lastUpdate": "更新于 {{time}}",
+      "viewAll": "查看全部"
     },
     "techReadiness": {
       "internetUsers": "互联网用户",

@@ -362,6 +362,7 @@ export class PanelLayoutManager implements AppModule {
       'events',
       () => this.ctx.allNews,
       () => this.ctx.newsByCategory,
+      (lat, lon) => this.ctx.map?.setCenter(lat, lon, 6),
     ));
 
     this.createPanel('insights', () => new InsightsPanel());

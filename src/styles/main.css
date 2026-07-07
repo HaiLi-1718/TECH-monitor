@@ -13899,6 +13899,21 @@ a.prediction-link:hover {
   color: #ff6600;
 }
 
+/* CSS-only map pin (avoids emoji tofu on Windows) */
+.map-pin-icon {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50% 50% 50% 0;
+  background: #ff4444;
+  transform: rotate(-45deg);
+  border: 1px solid rgba(255,255,255,0.4);
+}
+
+.event-map-link:hover .map-pin-icon {
+  background: #ff6666;
+}
+
 .extracted-title {
   font-size: 12px;
   font-weight: 600;
@@ -13952,6 +13967,84 @@ a.prediction-link:hover {
 
 .extracted-sources .item {
   padding: 2px 0 2px 8px;
+}
+
+/* ── Milestones (fused into news timeline) ──────────────────────────── */
+
+.news-milestones {
+  margin-bottom: 4px;
+  padding: 4px;
+  background: rgba(255, 102, 0, 0.04);
+  border-radius: 4px;
+}
+
+.milestones-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 4px 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+}
+
+.milestones-header:hover {
+  color: var(--text);
+}
+
+.milestones-view-all {
+  background: none;
+  border: none;
+  color: var(--accent, #4488ff);
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.milestone-card {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-left: 3px solid var(--border);
+  padding: 4px 6px;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 2px;
+  margin-bottom: 2px;
+}
+
+.milestone-card:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.milestone-badge {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding: 0 4px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.milestone-title {
+  font-size: 11px;
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.milestone-time {
+  font-size: 9px;
+  color: var(--text-dim);
+  flex-shrink: 0;
 }
 
 .tech-events-loading {

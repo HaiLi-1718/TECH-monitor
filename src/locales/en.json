@@ -1435,7 +1435,8 @@
       "severityLow": "Low",
       "newActivity": "Updated",
       "firstReported": "First {{time}}",
-      "lastUpdate": "Updated {{time}}"
+      "lastUpdate": "Updated {{time}}",
+      "viewAll": "View all"
     },
     "techReadiness": {
       "internetUsers": "Internet Users",

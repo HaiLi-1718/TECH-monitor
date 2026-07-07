@@ -154,6 +154,8 @@ export interface ExtractedEvent {
   lastUpdated: string;               // ISO — bumped whenever the event sees new activity
   updateCount: number;               // times new activity was observed after first track
   hasNewActivity: boolean;           // true if the most recent pass grew this event
+  lat?: number;                      // geo, inherited from the cluster when available
+  lon?: number;
   extractionSource: 'llm' | 'fallback';
 }
 
