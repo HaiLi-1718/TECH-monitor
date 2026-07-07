@@ -287,7 +287,7 @@ export class TechEventsPanel extends Panel {
     if (this.newsFilter !== 'all' || all.length === 0) return false;
 
     const top = all
-      .filter(ev => ev.severity === 'high' || ev.severity === 'medium')
+      .filter((ev: ExtractedEvent) => ev.severity === 'high' || ev.severity === 'medium')
       .slice(0, 3);
     if (top.length === 0) return false;
 
@@ -298,7 +298,7 @@ export class TechEventsPanel extends Panel {
           t('components.techEvents.viewAll'),
         ),
       ),
-      ...top.map(ev => {
+      ...top.map((ev: ExtractedEvent) => {
         const accent = SEVERITY_COLORS[ev.severity] ?? '#888';
         return h('a', {
           className: 'milestone-card',
@@ -336,7 +336,7 @@ export class TechEventsPanel extends Panel {
     }
 
     return h('div', { className: 'extracted-events' },
-      ...events.map(ev => this.buildExtractedCard(ev)),
+      ...events.map((ev: ExtractedEvent) => this.buildExtractedCard(ev)),
     );
   }
 
