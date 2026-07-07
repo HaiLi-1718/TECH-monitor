@@ -1384,7 +1384,10 @@
       "extractedFallback": "规则抽取",
       "severityHigh": "高",
       "severityMedium": "中",
-      "severityLow": "低"
+      "severityLow": "低",
+      "newActivity": "有更新",
+      "firstReported": "首报 {{time}}",
+      "lastUpdate": "更新于 {{time}}"
     },
     "techReadiness": {
       "internetUsers": "互联网用户",

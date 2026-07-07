@@ -10,7 +10,7 @@ import type { TechEvent, ListTechEventsResponse } from '@/generated/client/world
 import type { NewsItem, DeductContextDetail, ExtractedEvent } from '@/types';
 import { buildNewsContext } from '@/utils/news-context';
 import { getHydratedData } from '@/services/bootstrap';
-import { getExtractedEvents, hasExtractionRun } from '@/services/event-extraction-llm';
+import { getExtractedEvents, hasExtractionRun, ensureHydrated } from '@/services/event-extraction-llm';
 type ViewMode = 'upcoming' | 'conferences' | 'earnings' | 'all';
 type MainMode = 'news' | 'extracted' | 'calendar';
 
@@ -50,6 +50,7 @@ export class TechEventsPanel extends Panel {
   private loading = true;
   private error: string | null = null;
   private calendarLoaded = false;
+  private extractedHydrated = false;
 
   constructor(
     id: string,
@@ -167,6 +168,13 @@ export class TechEventsPanel extends Panel {
             if (mode === 'calendar' && !this.calendarLoaded) {
               this.calendarLoaded = true;
               void this.fetchEvents();
+            } else if (mode === 'extracted' && !this.extractedHydrated) {
+              // Pull any persisted events from a prior session, then repaint.
+              this.extractedHydrated = true;
+              this.render();
+              void ensureHydrated().then(() => {
+                if (this.mainMode === 'extracted') this.render();
+              });
             } else {
               this.render();
             }
@@ -296,10 +304,14 @@ export class TechEventsPanel extends Panel {
       : t(`components.techEvents.severity${ev.severity.charAt(0).toUpperCase()}${ev.severity.slice(1)}`);
     const badgeText = ev.subcategory ? `${ev.category} · ${ev.subcategory}` : ev.category;
 
-    return h('div', { className: 'extracted-card', style: `border-left-color:${accent}` },
+    return h('div', { className: `extracted-card ${ev.hasNewActivity ? 'has-activity' : ''}`, style: `border-left-color:${accent}` },
       h('div', { className: 'extracted-card-head' },
         h('span', { className: 'extracted-badge', style: `color:${accent};border-color:${accent}` }, badgeText),
         sevLabel ? h('span', { className: 'extracted-severity', style: `background:${accent}` }, sevLabel) : false,
+        ev.hasNewActivity
+          ? h('span', { className: 'extracted-activity-tag', title: t('components.techEvents.newActivity') },
+            `\u{1F525} ${t('components.techEvents.newActivity')}`)
+          : false,
         ev.extractionSource === 'fallback'
           ? h('span', { className: 'extracted-fallback-tag' }, t('components.techEvents.extractedFallback'))
           : false,
@@ -314,7 +326,12 @@ export class TechEventsPanel extends Panel {
       h('div', { className: 'extracted-meta' },
         h('span', { className: 'extracted-sources-count' },
           t('components.techEvents.extractedSources', { count: String(ev.sourceCount) })),
-        h('span', { className: 'extracted-time' }, formatTime(new Date(ev.lastUpdated))),
+        h('span', { className: 'extracted-time' },
+          t('components.techEvents.firstReported', { time: formatTime(new Date(ev.firstSeen)) })),
+        ev.updateCount > 0
+          ? h('span', { className: 'extracted-updated' },
+            t('components.techEvents.lastUpdate', { time: formatTime(new Date(ev.lastUpdated)) }))
+          : false,
         isDesktopRuntime() ? h('button', {
           className: 'event-deduce-link',
           title: 'Deduce Situation with AI',

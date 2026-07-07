@@ -13882,6 +13882,23 @@ a.prediction-link:hover {
   padding: 1px 4px;
 }
 
+.extracted-activity-tag {
+  font-size: 9px;
+  font-weight: 700;
+  color: #ff6600;
+  border: 1px solid #ff6600;
+  border-radius: 3px;
+  padding: 1px 4px;
+}
+
+.extracted-card.has-activity {
+  background: rgba(255, 102, 0, 0.06);
+}
+
+.extracted-updated {
+  color: #ff6600;
+}
+
 .extracted-title {
   font-size: 12px;
   font-weight: 600;

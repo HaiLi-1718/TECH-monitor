@@ -1432,7 +1432,10 @@
       "extractedFallback": "Rule-based",
       "severityHigh": "High",
       "severityMedium": "Medium",
-      "severityLow": "Low"
+      "severityLow": "Low",
+      "newActivity": "Updated",
+      "firstReported": "First {{time}}",
+      "lastUpdate": "Updated {{time}}"
     },
     "techReadiness": {
       "internetUsers": "Internet Users",

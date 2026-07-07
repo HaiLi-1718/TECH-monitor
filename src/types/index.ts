@@ -150,8 +150,10 @@ export interface ExtractedEvent {
   sources: NewsItem[];               // provenance — cluster items (capped)
   sourceCount: number;
   link: string;
-  firstSeen: string;                 // ISO — lifecycle start
-  lastUpdated: string;               // ISO
+  firstSeen: string;                 // ISO — lifecycle start, frozen on first track
+  lastUpdated: string;               // ISO — bumped whenever the event sees new activity
+  updateCount: number;               // times new activity was observed after first track
+  hasNewActivity: boolean;           // true if the most recent pass grew this event
   extractionSource: 'llm' | 'fallback';
 }
 
