@@ -13759,6 +13759,72 @@ a.prediction-link:hover {
   flex-direction: column;
   gap: 8px;
   height: 100%;
+  min-height: 0;
+}
+
+/* Wrapper returned by renderCalendar() — mirrors .news-timeline-wrap so the
+   legacy calendar sub-tabs + list don't overflow the flex column. */
+.tech-calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ── Multi-category news timeline ─────────────────────────────────────────── */
+.news-timeline-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-height: 0;
+}
+
+.news-timeline-filters {
+  flex-wrap: wrap;
+}
+
+.news-timeline-filters .panel-tab {
+  gap: 4px;
+}
+
+.category-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.news-timeline {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.timeline-day-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.timeline-day-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 4px 8px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.timeline-item .item-source .category-dot {
+  margin-right: 2px;
 }
 
 .tech-events-loading {

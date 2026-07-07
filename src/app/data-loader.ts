@@ -659,6 +659,8 @@ export class DataLoaderManager implements AppModule {
       void archiveNewsItems(items, category).catch(() => {});
     }
     this.ctx.newsByCategory[category] = items;
+    // Notify the multi-category news timeline panel (structural type avoids cross-layer coupling).
+    (this.ctx.panels['events'] as unknown as { onNewsUpdated?: () => void } | undefined)?.onNewsUpdated?.();
     const panel = this.ctx.newsPanels[category];
     if (!panel) return;
     const filteredItems = this.filterItemsByTimeRange(items);

@@ -1369,7 +1369,14 @@
       "onMap": "{{count}} on map",
       "techmemeEvents": "Techmeme Events ↗",
       "today": "TODAY",
-      "soon": "SOON"
+      "soon": "SOON",
+      "tabNews": "新闻时间线",
+      "tabCalendar": "科技日历",
+      "filterAll": "全部",
+      "groupToday": "今天",
+      "groupYesterday": "昨天",
+      "groupEarlier": "更早",
+      "noNews": "该时段暂无新闻"
     },
     "techReadiness": {
       "internetUsers": "互联网用户",

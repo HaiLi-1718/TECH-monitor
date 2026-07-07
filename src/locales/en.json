@@ -1417,7 +1417,14 @@
       "onMap": "{{count}} on map",
       "techmemeEvents": "Techmeme Events ↗",
       "today": "TODAY",
-      "soon": "SOON"
+      "soon": "SOON",
+      "tabNews": "News Timeline",
+      "tabCalendar": "Tech Calendar",
+      "filterAll": "All",
+      "groupToday": "Today",
+      "groupYesterday": "Yesterday",
+      "groupEarlier": "Earlier",
+      "noNews": "No news in this period"
     },
     "techReadiness": {
       "internetUsers": "Internet Users",

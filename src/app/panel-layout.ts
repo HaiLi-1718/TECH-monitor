@@ -358,7 +358,11 @@ export class PanelLayoutManager implements AppModule {
       this.ctx.panels['live-news'] = new LiveNewsPanel();
     }
 
-    this.createPanel('events', () => new TechEventsPanel('events', () => this.ctx.allNews));
+    this.createPanel('events', () => new TechEventsPanel(
+      'events',
+      () => this.ctx.allNews,
+      () => this.ctx.newsByCategory,
+    ));
 
     this.createPanel('insights', () => new InsightsPanel());
 
