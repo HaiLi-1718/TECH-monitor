@@ -688,15 +688,17 @@ const LOCALTECH_FEEDS: Record<string, Feed[]> = {
     { name: 'OpenAI Blog', url: rss(gn('site:openai.com (AI OR GPT OR model OR "artificial intelligence")')) },
     { name: 'SyncedReview', url: rss('https://syncedreview.com/feed/') },
   ],
-  startups: [
-    { name: '36Kr', url: rss('https://36kr.com/feed'), lang: 'zh' },
-    { name: '钛媒体', url: rss('https://www.tmtpost.com/rss.xml'), lang: 'zh' },
-    { name: 'TechCrunch Startups', url: rss('https://techcrunch.com/category/startups/feed/') },
-    { name: 'Crunchbase News', url: rss('https://news.crunchbase.com/feed/') },
-    { name: 'SaaStr', url: rss('https://www.saastr.com/feed/') },
-    { name: 'TechCrunch Venture', url: rss('https://techcrunch.com/category/venture/feed/') },
-    { name: 'CB Insights', url: rss('https://www.cbinsights.com/research/feed/') },
-  ],
+  // 创业与融资类别按需求隐藏：不加载即不进 allNews / 聚类，事件抽取与新闻时间线均不再出现创投内容。
+  // Feed 列表保留（TECH_FEEDS.startups 也仍在），恢复时取消注释即可。
+  // startups: [
+  //   { name: '36Kr', url: rss('https://36kr.com/feed'), lang: 'zh' },
+  //   { name: '钛媒体', url: rss('https://www.tmtpost.com/rss.xml'), lang: 'zh' },
+  //   { name: 'TechCrunch Startups', url: rss('https://techcrunch.com/category/startups/feed/') },
+  //   { name: 'Crunchbase News', url: rss('https://news.crunchbase.com/feed/') },
+  //   { name: 'SaaStr', url: rss('https://www.saastr.com/feed/') },
+  //   { name: 'TechCrunch Venture', url: rss('https://techcrunch.com/category/venture/feed/') },
+  //   { name: 'CB Insights', url: rss('https://www.cbinsights.com/research/feed/') },
+  // ],
   biopharma: TECH_FEEDS.biopharma ?? [],
   // Policy / security panels use the same curated lists as the tech variant (FEEDS-derived TECH_FEEDS).
   policy: TECH_FEEDS.policy ?? [],

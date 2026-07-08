@@ -15,7 +15,7 @@ type ViewMode = 'upcoming' | 'conferences' | 'earnings' | 'all';
 type MainMode = 'news' | 'extracted' | 'calendar';
 
 /** News categories shown in the multi-category timeline, in display order. */
-const CATEGORY_ORDER = ['ai', 'security', 'policy', 'biopharma', 'tech', 'startups'] as const;
+const CATEGORY_ORDER = ['ai', 'security', 'policy', 'biopharma', 'tech'] as const;
 
 /** Per-category accent color for the timeline dot / filter chip. */
 const CATEGORY_COLORS: Record<string, string> = {
@@ -24,7 +24,6 @@ const CATEGORY_COLORS: Record<string, string> = {
   policy: '#ffaa00',
   biopharma: '#44ff88',
   tech: '#44ffff',
-  startups: '#ff44ff',
 };
 
 /** Max items rendered in the timeline (across all categories). */

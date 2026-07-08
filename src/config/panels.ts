@@ -5,16 +5,20 @@ import type { PanelConfig, MapLayers, DataSourceId } from '@/types';
 // ============================================
 const LOCALTECH_PANELS: Record<string, PanelConfig> = {
   map: { name: '科技地图', enabled: true, priority: 1 },
-  'live-news': { name: '科技快讯', enabled: true, priority: 1 },
   ai: { name: 'AI / 机器学习', enabled: true, priority: 1 },
+  tech: { name: '科技', enabled: true, priority: 1 },
   insights: { name: 'AI 摘要', enabled: true, priority: 1 },
   events: { name: '事件时间线', enabled: true, priority: 1 },
   policy: { name: '政策监管', enabled: true, priority: 1 },
   security: { name: '安全事件', enabled: true, priority: 1 },
-  monitors: { name: '生物医药自定义监控', enabled: true, priority: 1 },
   biopharma: { name: '生物医药', enabled: true, priority: 1 },
-  startups: { name: '创业与融资', enabled: false, priority: 2 },
-  'tech-monitoring-companies': { name: '重点企业库', enabled: false, priority: 2 },
+  // 以下面板按需求隐藏：不注册即不创建、也不出现在“添加面板”菜单。
+  // 组件代码保留（LiveNewsPanel / MonitorPanel / TechMonitoringCompaniesPanel / startups NewsPanel），
+  // 如需恢复，重新加回本表 + PANEL_CATEGORY_MAP 即可。
+  // 'live-news': { name: '科技快讯', enabled: true, priority: 1 },
+  // monitors: { name: '生物医药自定义监控', enabled: true, priority: 1 },
+  // startups: { name: '创业与融资', enabled: false, priority: 2 },
+  // 'tech-monitoring-companies': { name: '重点企业库', enabled: false, priority: 2 },
 };
 
 const LOCALTECH_MAP_LAYERS: MapLayers = {
@@ -143,24 +147,22 @@ export const LAYER_TO_SOURCE: Partial<Record<keyof MapLayers, DataSourceId[]>> =
 export const PANEL_CATEGORY_MAP: Record<string, { labelKey: string; panelKeys: string[] }> = {
   core: {
     labelKey: 'header.panelCatCore',
-    panelKeys: ['map', 'live-news', 'insights'],
+    panelKeys: ['map', 'insights'],
   },
   techAi: {
     labelKey: 'header.panelCatTechAi',
-    panelKeys: ['ai', 'events'],
+    panelKeys: ['ai', 'tech', 'events'],
   },
   securityPolicy: {
     labelKey: 'header.panelCatSecurityPolicy',
     panelKeys: ['security', 'policy'],
   },
   biopharmaGroup: {
-    labelKey: 'header.panelCatStartupsVc',
-    panelKeys: ['biopharma', 'monitors'],
+    labelKey: 'header.panelCatBiopharma',
+    panelKeys: ['biopharma'],
   },
-  companies: {
-    labelKey: 'header.panelCatMarkets',
-    panelKeys: ['startups', 'tech-monitoring-companies'],
-  },
+  // “重点企业库 / 创业与融资”分类整体隐藏（面板已从 LOCALTECH_PANELS 移除）。
+  // companies: { labelKey: 'header.panelCatMarkets', panelKeys: ['startups', 'tech-monitoring-companies'] },
 };
 
 export const MONITOR_COLORS = [

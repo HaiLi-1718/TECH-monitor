@@ -341,6 +341,7 @@ export class PanelLayoutManager implements AppModule {
     this.ctx.currentTimeRange = this.ctx.map.getTimeRange();
 
     this.createNewsPanel('ai', 'panels.ai');
+    this.createNewsPanel('tech', 'panels.tech');
     this.createNewsPanel('startups', 'panels.startups');
     this.createNewsPanel('security', 'panels.security');
     this.createNewsPanel('policy', 'panels.policy');
